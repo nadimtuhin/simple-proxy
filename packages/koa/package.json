@@ -17,7 +17,6 @@
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "test": "vitest run",
-    "lint": "eslint src/**/*.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf dist"
   },
@@ -29,14 +28,19 @@
     "koa": "^2.14.0 || ^3.0.0"
   },
   "devDependencies": {
+    "@simple-proxy/testkit": "workspace:*",
+    "@koa/multer": "^3.0.2",
+    "@koa/router": "^12.0.0",
     "@types/koa": "^2.15.0",
     "@types/koa-bodyparser": "^4.3.12",
     "@types/koa__multer": "^2.0.4",
-    "@koa/multer": "^3.0.2",
+    "@types/koa__router": "^12.0.4",
     "koa": "^2.14.0",
     "koa-bodyparser": "^4.4.0",
     "nock": "^13.4.0",
-    "rimraf": "^5.0.5"
+    "rimraf": "^5.0.5",
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
   },
   "publishConfig": { "access": "public" },
   "keywords": ["koa", "proxy", "middleware", "typescript"]

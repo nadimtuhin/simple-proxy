@@ -1,0 +1,43 @@
+{
+  "name": "@simple-proxy/koa",
+  "version": "0.1.0",
+  "description": "Koa adapter for @simple-proxy/core",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "test": "vitest run",
+    "lint": "eslint src/**/*.ts",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@simple-proxy/core": "workspace:*",
+    "form-data": "^4.0.0"
+  },
+  "peerDependencies": {
+    "koa": "^2.14.0 || ^3.0.0"
+  },
+  "devDependencies": {
+    "@types/koa": "^2.15.0",
+    "@types/koa-bodyparser": "^4.3.12",
+    "@types/koa__multer": "^2.0.4",
+    "@koa/multer": "^3.0.2",
+    "koa": "^2.14.0",
+    "koa-bodyparser": "^4.4.0",
+    "nock": "^13.4.0",
+    "rimraf": "^5.0.5"
+  },
+  "publishConfig": { "access": "public" },
+  "keywords": ["koa", "proxy", "middleware", "typescript"]
+}

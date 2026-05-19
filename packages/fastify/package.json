@@ -17,7 +17,6 @@
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "test": "vitest run",
-    "lint": "eslint src/**/*.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf dist"
   },
@@ -35,9 +34,12 @@
   },
   "devDependencies": {
     "@fastify/multipart": "^8.0.0",
+    "@simple-proxy/testkit": "workspace:*",
     "fastify": "^4.0.0",
     "nock": "^13.4.0",
-    "rimraf": "^5.0.5"
+    "rimraf": "^5.0.5",
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
   },
   "publishConfig": { "access": "public" },
   "keywords": ["fastify", "proxy", "plugin", "typescript"]

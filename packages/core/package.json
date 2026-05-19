@@ -16,7 +16,7 @@
   "engines": { "node": ">=18" },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
-    "test": "vitest run",
+    "test": "vitest run test/",
     "lint": "eslint src/**/*.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf dist"

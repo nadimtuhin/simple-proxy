@@ -92,6 +92,16 @@ importers:
         specifier: ^6.3.3
         version: 6.3.4
 
+  packages/express-simple-proxy:
+    dependencies:
+      '@simple-proxy/express':
+        specifier: workspace:*
+        version: link:../express
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+
   packages/fastify:
     dependencies:
       '@simple-proxy/core':
@@ -107,6 +117,9 @@ importers:
       '@fastify/multipart':
         specifier: ^8.0.0
         version: 8.3.1
+      '@simple-proxy/testkit':
+        specifier: workspace:*
+        version: link:../testkit
       fastify:
         specifier: ^4.0.0
         version: 4.29.1
@@ -116,6 +129,12 @@ importers:
       rimraf:
         specifier: ^5.0.5
         version: 5.0.10
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@20.19.41)
 
   packages/koa:
     dependencies:
@@ -129,6 +148,12 @@ importers:
       '@koa/multer':
         specifier: ^3.0.2
         version: 3.1.0(multer@1.4.5-lts.2)
+      '@koa/router':
+        specifier: ^12.0.0
+        version: 12.0.2
+      '@simple-proxy/testkit':
+        specifier: workspace:*
+        version: link:../testkit
       '@types/koa':
         specifier: ^2.15.0
         version: 2.15.2
@@ -138,6 +163,9 @@ importers:
       '@types/koa__multer':
         specifier: ^2.0.4
         version: 2.0.8
+      '@types/koa__router':
+        specifier: ^12.0.4
+        version: 12.0.5
       koa:
         specifier: ^2.14.0
         version: 2.16.4
@@ -150,6 +178,12 @@ importers:
       rimraf:
         specifier: ^5.0.5
         version: 5.0.10
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@20.19.41)
 
   packages/testkit:
     dependencies:
@@ -157,6 +191,9 @@ importers:
         specifier: workspace:*
         version: link:../core
     devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
       vitest:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.41)
@@ -606,6 +643,11 @@ packages:
     peerDependencies:
       multer: '*'
 
+  '@koa/router@12.0.2':
+    resolution: {integrity: sha512-sYcHglGKTxGF+hQ6x67xDfkE9o+NhVlRHBqq6gLywaMc6CojK/5vFZByphdonKinYlMLkEkacm+HEse9HzwgTA==}
+    engines: {node: '>= 12'}
+    deprecated: Please upgrade to v15 or higher. All reported bugs in this version are fixed in newer releases, dependencies have been updated, and security has been improved.
+
   '@manypkg/find-root@1.1.0':
     resolution: {integrity: sha512-mki5uBvhHzO8kYYix/WRy2WX8S3B5wdVSc9D6KcU5lQNglP2yt58/VfLuAK49glRXChosY8ap2oJ1qgma3GUVA==}
 
@@ -820,6 +862,9 @@ packages:
 
   '@types/koa__multer@2.0.8':
     resolution: {integrity: sha512-XkD9YzmGKzKfOkxwHepueQkP61okAeu6ibAieL4NSqwM1lyGOkgbT2XmP+xROd2agQVsewPqsFOsfgVmlEqJmg==}
+
+  '@types/koa__router@12.0.5':
+    resolution: {integrity: sha512-1HeLxuDn4n5it1yZYCSyOYXo++73zT0ffoviXnPxbwbxLbvDFEvWD9ZzpRiIpK4oKR0pi+K+Mk/ZjyROjW3HSw==}
 
   '@types/methods@1.1.4':
     resolution: {integrity: sha512-ymXWVrDiCxTBE3+RIrrP533E70eA+9qu7zdWoHuOmGujkYtzf4HQF96b8nwHLqhuf4ykX61IGRIB38CC6/sImQ==}
@@ -1988,6 +2033,9 @@ packages:
   path-to-regexp@0.1.13:
     resolution: {integrity: sha512-A/AGNMFN3c8bOlvV9RreMdrv7jsmF9XIfDeCd87+I8RNg6s78BhJxMu69NEMHBSJFxKidViTEdruRwEk/WIKqA==}
 
+  path-to-regexp@6.3.0:
+    resolution: {integrity: sha512-Yhpw4T9C6hPpgPeA28us07OJeqZ5EzQTkbfwuhsUg0c237RomFoETJgmp2sa3F/41gfLE6G5cqcYwznmeEeOlQ==}
+
   path-type@4.0.0:
     resolution: {integrity: sha512-gDKb8aZMDeD/tZWs9P6+q0J9Mwkdl6xMV8TjnGP3qJVJ06bdMgkbBlLU8IdfOsIsFz2BW1rNVT3XuNEl8zPAvw==}
     engines: {node: '>=8'}
@@ -2974,6 +3022,16 @@ snapshots:
     dependencies:
       multer: 1.4.5-lts.2
 
+  '@koa/router@12.0.2':
+    dependencies:
+      debug: 4.4.3
+      http-errors: 2.0.1
+      koa-compose: 4.1.0
+      methods: 1.1.2
+      path-to-regexp: 6.3.0
+    transitivePeerDependencies:
+      - supports-color
+
   '@manypkg/find-root@1.1.0':
     dependencies:
       '@babel/runtime': 7.29.2
@@ -3160,6 +3218,10 @@ snapshots:
       '@types/node': 20.19.41
 
   '@types/koa__multer@2.0.8':
+    dependencies:
+      '@types/koa': 2.15.2
+
+  '@types/koa__router@12.0.5':
     dependencies:
       '@types/koa': 2.15.2
 
@@ -4467,6 +4529,8 @@ snapshots:
       minipass: 7.1.3
 
   path-to-regexp@0.1.13: {}
+
+  path-to-regexp@6.3.0: {}
 
   path-type@4.0.0: {}
 

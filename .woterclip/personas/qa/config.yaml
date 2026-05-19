@@ -1,0 +1,15 @@
+name: QA Engineer
+role: engineer
+label: qa
+escalates_to: ceo
+
+required_tools:
+  - mcp__claude_ai_Linear          # Issue management
+
+runtime:
+  model: sonnet                    # Test writing — moderate complexity
+  thinking_effort: medium
+  max_turns: 200
+  enable_chrome: false
+  timeout: 0
+  extra_args: []

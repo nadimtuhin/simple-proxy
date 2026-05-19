@@ -1,0 +1,15 @@
+name: Infra Engineer
+role: engineer
+label: infra
+escalates_to: ceo
+
+required_tools:
+  - mcp__claude_ai_Linear          # Issue management
+
+runtime:
+  model: sonnet                    # Infrastructure work — moderate complexity
+  thinking_effort: high
+  max_turns: 200
+  enable_chrome: false
+  timeout: 0
+  extra_args: []

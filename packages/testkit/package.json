@@ -3,15 +3,18 @@
   "version": "0.0.0",
   "private": true,
   "description": "Shared compliance test suite for @simple-proxy adapters (not published)",
+  "type": "module",
   "main": "./src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/**/*.ts"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@simple-proxy/core": "workspace:*"
   },
   "devDependencies": {
+    "typescript": "^5.0.0",
     "vitest": "^2.0.0"
   }
 }

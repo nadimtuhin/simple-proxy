@@ -138,7 +138,12 @@ async function applyErrorHook(
 export function createProxyController(config: ProxyConfig): ProxyController {
   validateConfig(config);
 
-  const { errorHandler = defaultErrorHandler, errorHandlerHook, beforeRequest, onResponse } = config;
+  const {
+    errorHandler = defaultErrorHandler,
+    errorHandlerHook,
+    beforeRequest,
+    onResponse,
+  } = config;
 
   return function proxyController(proxyPath?: string, handler?: ResponseHandler | boolean) {
     return asyncWrapper(async (req: RequestWithLocals, res: Response): Promise<void> => {

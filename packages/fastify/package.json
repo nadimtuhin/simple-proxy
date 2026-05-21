@@ -47,7 +47,7 @@
     "nock": "^13.4.0",
     "rimraf": "^5.0.5",
     "typescript": "^5.0.0",
-    "vitest": "^2.0.0"
+    "vitest": "^4.1.7"
   },
   "publishConfig": {
     "access": "public"

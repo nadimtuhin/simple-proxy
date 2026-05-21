@@ -12,7 +12,7 @@ import {
   FileUpload,
   DEFAULT_TIMEOUT,
   MAX_REQUEST_SIZE,
-} from '@simple-proxy/core';
+} from '@nadimtuhin/simple-proxy-core';
 
 export type {
   ProxyErrorCode,

@@ -1,5 +1,5 @@
 {
-  "name": "@simple-proxy/fastify",
+  "name": "@nadimtuhin/simple-proxy-fastify",
   "version": "0.3.0",
   "description": "Fastify adapter for @simple-proxy/core",
   "main": "./dist/index.js",
@@ -29,7 +29,7 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "@simple-proxy/core": "workspace:*",
+    "@nadimtuhin/simple-proxy-core": "workspace:*",
     "fastify-plugin": "^4.5.0",
     "form-data": "^4.0.0"
   },

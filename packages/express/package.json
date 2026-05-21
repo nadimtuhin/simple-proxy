@@ -1,5 +1,5 @@
 {
-  "name": "@simple-proxy/express",
+  "name": "@nadimtuhin/simple-proxy-express",
   "version": "0.3.0",
   "description": "Express adapter for @simple-proxy/core",
   "main": "./dist/index.js",
@@ -30,7 +30,7 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "@simple-proxy/core": "workspace:*",
+    "@nadimtuhin/simple-proxy-core": "workspace:*",
     "form-data": "^4.0.0"
   },
   "peerDependencies": {

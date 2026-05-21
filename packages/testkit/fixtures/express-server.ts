@@ -6,7 +6,7 @@
 import { createServer } from 'node:http';
 import express from 'express';
 import multer from 'multer';
-import { createProxyController } from '@simple-proxy/express';
+import { createProxyController } from '@nadimtuhin/simple-proxy-express';
 import { createMockUpstream } from '../src/mock-upstream.ts';
 
 const upstream = await createMockUpstream();

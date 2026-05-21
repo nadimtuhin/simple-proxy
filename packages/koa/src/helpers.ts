@@ -4,13 +4,13 @@ import {
   buildQueryString,
   resolveProxyPath,
   createFormDataPayload,
-} from '@simple-proxy/core';
+} from '@nadimtuhin/simple-proxy-core';
 import type {
   ProxyRequestPayload,
   ProxyStats,
   ShortCircuitResponse,
   FileUpload,
-} from '@simple-proxy/core';
+} from '@nadimtuhin/simple-proxy-core';
 import type { KoaProxyConfig, KoaOnResponseCallback } from './types.js';
 import { DEFAULT_TIMEOUT } from './types.js';
 

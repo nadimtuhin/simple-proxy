@@ -1,5 +1,5 @@
 {
-  "name": "@simple-proxy/core",
+  "name": "@nadimtuhin/simple-proxy-core",
   "version": "0.3.0",
   "description": "Framework-agnostic HTTP proxy core (axios-based)",
   "main": "./dist/index.js",

@@ -14,18 +14,18 @@ import type { AddressInfo } from 'node:net';
 // ── express ──────────────────────────────────────────────────────────────────
 import express from 'express';
 import multer from 'multer';
-import { createProxyController } from '@simple-proxy/express';
+import { createProxyController } from '@nadimtuhin/simple-proxy-express';
 
 // ── fastify ───────────────────────────────────────────────────────────────────
 import Fastify from 'fastify';
 import type { FastifyRequest } from 'fastify';
-import { createFastifyProxyHandler } from '@simple-proxy/fastify';
+import { createFastifyProxyHandler } from '@nadimtuhin/simple-proxy-fastify';
 
 // ── koa ───────────────────────────────────────────────────────────────────────
 import Koa from 'koa';
 import Router from '@koa/router';
 import bodyParser from 'koa-bodyparser';
-import { createKoaProxyMiddleware } from '@simple-proxy/koa';
+import { createKoaProxyMiddleware } from '@nadimtuhin/simple-proxy-koa';
 
 // ── testkit ───────────────────────────────────────────────────────────────────
 import { createMockUpstream } from '../src/mock-upstream.js';

@@ -1,5 +1,5 @@
 {
-  "name": "@simple-proxy/koa",
+  "name": "@nadimtuhin/simple-proxy-koa",
   "version": "0.3.0",
   "description": "Koa adapter for @simple-proxy/core",
   "main": "./dist/index.js",
@@ -29,7 +29,7 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "@simple-proxy/core": "workspace:*",
+    "@nadimtuhin/simple-proxy-core": "workspace:*",
     "form-data": "^4.0.0"
   },
   "peerDependencies": {

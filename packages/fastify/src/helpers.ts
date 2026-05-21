@@ -3,12 +3,12 @@ import {
   urlJoin,
   buildQueryString,
   resolveProxyPath,
-} from '@simple-proxy/core';
+} from '@nadimtuhin/simple-proxy-core';
 import type {
   ProxyRequestPayload,
   ProxyStats,
   ShortCircuitResponse,
-} from '@simple-proxy/core';
+} from '@nadimtuhin/simple-proxy-core';
 import type { FastifyProxyConfig, FastifyOnResponseCallback } from './types.js';
 import { DEFAULT_TIMEOUT } from './types.js';
 

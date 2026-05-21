@@ -17,7 +17,7 @@ export {
   isShortCircuitResponse,
   buildErrorResponseBody,
   filterProxyResponseHeaders,
-} from '@simple-proxy/core';
+} from '@nadimtuhin/simple-proxy-core';
 
 export type {
   ProxyConfig,

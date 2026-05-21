@@ -8,8 +8,8 @@ import {
   resolveProxyPath,
   createFormDataPayload as coreCreateFormDataPayload,
   generateCurlCommand as coreGenerateCurlCommand,
-} from '@simple-proxy/core';
-import type { CurlCommandOptions, FileUpload } from '@simple-proxy/core';
+} from '@nadimtuhin/simple-proxy-core';
+import type { CurlCommandOptions, FileUpload } from '@nadimtuhin/simple-proxy-core';
 import type { RequestWithLocals, RequestWithFiles } from './types.js';
 
 export { urlJoin, replaceUrlTemplate, buildQueryString, parseSize, resolveProxyPath };

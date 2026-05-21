@@ -29,7 +29,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@simple-proxy/express": "workspace:*"
+    "@nadimtuhin/simple-proxy-express": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.0.0"

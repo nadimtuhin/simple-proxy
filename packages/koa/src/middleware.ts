@@ -4,8 +4,8 @@ import {
   filterProxyResponseHeaders,
   generateCurlCommand,
   runProxyPipeline,
-} from '@simple-proxy/core';
-import type { PipelineCallbacks, PipelineHooks } from '@simple-proxy/core';
+} from '@nadimtuhin/simple-proxy-core';
+import type { PipelineCallbacks, PipelineHooks } from '@nadimtuhin/simple-proxy-core';
 import type { KoaProxyConfig, ProxyError, ProxyRequestPayload } from './types.js';
 import {
   buildBasePayload,

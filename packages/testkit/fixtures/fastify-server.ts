@@ -5,7 +5,7 @@
  */
 import Fastify from 'fastify';
 import type { FastifyRequest } from 'fastify';
-import { createFastifyProxyHandler } from '@simple-proxy/fastify';
+import { createFastifyProxyHandler } from '@nadimtuhin/simple-proxy-fastify';
 import { createMockUpstream } from '../src/mock-upstream.ts';
 
 const upstream = await createMockUpstream();

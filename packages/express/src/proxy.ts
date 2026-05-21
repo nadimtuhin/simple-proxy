@@ -5,9 +5,9 @@ import {
   filterProxyResponseHeaders,
   runProxyPipeline,
   parseSize,
-} from '@simple-proxy/core';
-import type { ProxyResponse, ShortCircuitResponse, ProxyStats } from '@simple-proxy/core';
-import type { PipelineCallbacks, PipelineHooks } from '@simple-proxy/core';
+} from '@nadimtuhin/simple-proxy-core';
+import type { ProxyResponse, ShortCircuitResponse, ProxyStats } from '@nadimtuhin/simple-proxy-core';
+import type { PipelineCallbacks, PipelineHooks } from '@nadimtuhin/simple-proxy-core';
 import {
   buildQueryString,
   resolveProxyPath,

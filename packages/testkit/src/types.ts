@@ -1,4 +1,4 @@
-import type { ProxyStats, ProxyRequestPayload, ShortCircuitResponse } from '@simple-proxy/core';
+import type { ProxyStats, ProxyRequestPayload, ShortCircuitResponse } from '@nadimtuhin/simple-proxy-core';
 
 /** Options for creating a proxy server in a compliance test */
 export interface CreateProxyOptions {

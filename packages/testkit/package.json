@@ -11,13 +11,13 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@simple-proxy/core": "workspace:*"
+    "@nadimtuhin/simple-proxy-core": "workspace:*"
   },
   "devDependencies": {
     "@koa/router": "^12.0.0",
-    "@simple-proxy/express": "workspace:*",
-    "@simple-proxy/fastify": "workspace:*",
-    "@simple-proxy/koa": "workspace:*",
+    "@nadimtuhin/simple-proxy-express": "workspace:*",
+    "@nadimtuhin/simple-proxy-fastify": "workspace:*",
+    "@nadimtuhin/simple-proxy-koa": "workspace:*",
     "@types/koa": "^2.15.0",
     "@types/koa-bodyparser": "^4.3.12",
     "@types/koa__router": "^12.0.4",

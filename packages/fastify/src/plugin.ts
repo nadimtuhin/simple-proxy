@@ -5,8 +5,8 @@ import {
   generateCurlCommand,
   createFormDataPayload,
   runProxyPipeline,
-} from '@simple-proxy/core';
-import type { FileUpload, PipelineCallbacks, PipelineHooks } from '@simple-proxy/core';
+} from '@nadimtuhin/simple-proxy-core';
+import type { FileUpload, PipelineCallbacks, PipelineHooks } from '@nadimtuhin/simple-proxy-core';
 import type { FastifyProxyConfig, ProxyError, ProxyRequestPayload } from './types.js';
 import {
   buildBasePayload,

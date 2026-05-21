@@ -15,7 +15,7 @@ export {
   buildErrorResponseBody,
   filterProxyResponseHeaders,
   axiosProxyRequest,
-} from '@simple-proxy/core';
+} from '@nadimtuhin/simple-proxy-core';
 
 export { DEFAULT_TIMEOUT, MAX_REQUEST_SIZE } from './types.js';
 

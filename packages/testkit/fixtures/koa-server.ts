@@ -7,7 +7,7 @@ import { createServer } from 'node:http';
 import Koa from 'koa';
 import Router from '@koa/router';
 import bodyParser from 'koa-bodyparser';
-import { createKoaProxyMiddleware } from '@simple-proxy/koa';
+import { createKoaProxyMiddleware } from '@nadimtuhin/simple-proxy-koa';
 import { createMockUpstream } from '../src/mock-upstream.ts';
 
 const upstream = await createMockUpstream();

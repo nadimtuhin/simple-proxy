@@ -8,7 +8,7 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "@simple-proxy/fastify": "workspace:*",
+    "@nadimtuhin/simple-proxy-fastify": "workspace:*",
     "fastify": "^5.0.0"
   }
 }

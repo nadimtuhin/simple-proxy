@@ -53,7 +53,7 @@ importers:
 
   examples/fastify-example:
     dependencies:
-      '@simple-proxy/fastify':
+      '@nadimtuhin/simple-proxy-fastify':
         specifier: workspace:*
         version: link:../../packages/fastify
       fastify:
@@ -65,7 +65,7 @@ importers:
       '@koa/router':
         specifier: ^12.0.0
         version: 12.0.2
-      '@simple-proxy/koa':
+      '@nadimtuhin/simple-proxy-koa':
         specifier: workspace:*
         version: link:../../packages/koa
       koa:
@@ -93,7 +93,7 @@ importers:
 
   packages/express:
     dependencies:
-      '@simple-proxy/core':
+      '@nadimtuhin/simple-proxy-core':
         specifier: workspace:*
         version: link:../core
       form-data:
@@ -127,7 +127,7 @@ importers:
 
   packages/express-simple-proxy:
     dependencies:
-      '@simple-proxy/express':
+      '@nadimtuhin/simple-proxy-express':
         specifier: workspace:*
         version: link:../express
     devDependencies:
@@ -137,7 +137,7 @@ importers:
 
   packages/fastify:
     dependencies:
-      '@simple-proxy/core':
+      '@nadimtuhin/simple-proxy-core':
         specifier: workspace:*
         version: link:../core
       fastify-plugin:
@@ -171,7 +171,7 @@ importers:
 
   packages/koa:
     dependencies:
-      '@simple-proxy/core':
+      '@nadimtuhin/simple-proxy-core':
         specifier: workspace:*
         version: link:../core
       form-data:
@@ -220,20 +220,20 @@ importers:
 
   packages/testkit:
     dependencies:
-      '@simple-proxy/core':
+      '@nadimtuhin/simple-proxy-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
       '@koa/router':
         specifier: ^12.0.0
         version: 12.0.2
-      '@simple-proxy/express':
+      '@nadimtuhin/simple-proxy-express':
         specifier: workspace:*
         version: link:../express
-      '@simple-proxy/fastify':
+      '@nadimtuhin/simple-proxy-fastify':
         specifier: workspace:*
         version: link:../fastify
-      '@simple-proxy/koa':
+      '@nadimtuhin/simple-proxy-koa':
         specifier: workspace:*
         version: link:../koa
       '@types/koa':

@@ -1,6 +1,6 @@
 {
   "name": "@simple-proxy/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Framework-agnostic HTTP proxy core (axios-based)",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -12,8 +12,13 @@
       "require": "./dist/index.js"
     }
   },
-  "files": ["dist", "README.md"],
-  "engines": { "node": ">=18" },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "test": "vitest run test/",
@@ -29,6 +34,14 @@
     "nock": "^13.4.0",
     "rimraf": "^5.0.5"
   },
-  "publishConfig": { "access": "public" },
-  "keywords": ["proxy", "http", "axios", "middleware", "typescript"]
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "proxy",
+    "http",
+    "axios",
+    "middleware",
+    "typescript"
+  ]
 }

@@ -1,6 +1,6 @@
 {
   "name": "fastify-example",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "description": "Minimal example of @simple-proxy/fastify",
   "type": "module",

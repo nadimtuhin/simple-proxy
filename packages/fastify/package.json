@@ -1,6 +1,6 @@
 {
   "name": "@simple-proxy/fastify",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Fastify adapter for @simple-proxy/core",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -12,8 +12,13 @@
       "require": "./dist/index.js"
     }
   },
-  "files": ["dist", "README.md"],
-  "engines": { "node": ">=18" },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "test": "vitest run",
@@ -30,7 +35,9 @@
     "@fastify/multipart": "^8.0.0 || ^9.0.0"
   },
   "peerDependenciesMeta": {
-    "@fastify/multipart": { "optional": true }
+    "@fastify/multipart": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@fastify/multipart": "^8.0.0",
@@ -41,6 +48,13 @@
     "typescript": "^5.0.0",
     "vitest": "^2.0.0"
   },
-  "publishConfig": { "access": "public" },
-  "keywords": ["fastify", "proxy", "plugin", "typescript"]
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "fastify",
+    "proxy",
+    "plugin",
+    "typescript"
+  ]
 }

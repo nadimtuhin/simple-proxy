@@ -19,6 +19,11 @@
     "typecheck": "tsc --noEmit",
     "test": "echo 'No tests for shim package' && exit 0"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "publishConfig": {
     "access": "public"
   },

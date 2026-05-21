@@ -7,5 +7,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@simple-proxy/testkit"]
+  "ignore": ["@nadimtuhin/simple-proxy-testkit"]
 }

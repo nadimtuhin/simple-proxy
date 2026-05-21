@@ -17,7 +17,7 @@ Framework-agnostic HTTP proxy utilities for Node.js. Built on axios.
 | [`@simple-proxy/fastify`](./packages/fastify) | Fastify adapter |
 | [`@simple-proxy/koa`](./packages/koa) | Koa adapter |
 | [`express-simple-proxy`](./packages/express-simple-proxy) | **Deprecated** — migrate to `@simple-proxy/express` |
-| [`@simple-proxy/testkit`](./packages/testkit) | Shared compliance suite for adapter authors (internal, not published to npm) |
+| [`@nadimtuhin/simple-proxy-testkit`](./packages/testkit) | Shared compliance suite for adapter authors (internal, not published to npm) |
 
 ## Quick Start
 
@@ -161,7 +161,7 @@ This monorepo uses [Changesets](https://github.com/changesets/changesets) with p
 pnpm release   # builds all packages then runs changeset publish
 ```
 
-`@simple-proxy/testkit` is private (`"private": true`) and excluded from all publishes via `.changeset/config.json`.
+`@nadimtuhin/simple-proxy-testkit` is private (`"private": true`) and excluded from all publishes via `.changeset/config.json`.
 
 ## License
 

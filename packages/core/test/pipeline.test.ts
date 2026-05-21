@@ -1,15 +1,49 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import nock from 'nock';
+import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest';
+import { createServer, type Server, type IncomingMessage, type ServerResponse } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { runProxyPipeline } from '../src/pipeline.js';
 import type { PipelineHooks, PipelineCallbacks } from '../src/pipeline.js';
 import type { ProxyRequestPayload, ProxyResponse, ShortCircuitResponse, ProxyError } from '../src/types.js';
 
-const BASE_PAYLOAD: ProxyRequestPayload = {
-  url: 'http://example.com/api/data',
-  method: 'GET',
-  headers: {},
-  timeout: 5000,
-};
+type RouteHandler = (req: IncomingMessage, res: ServerResponse, body: string) => void;
+const routes = new Map<string, RouteHandler>();
+let server: Server;
+let base: string;
+let closedPort: number;
+
+beforeAll(async () => {
+  const probe = createServer();
+  await new Promise<void>((resolve) => probe.listen(0, '127.0.0.1', () => resolve()));
+  closedPort = (probe.address() as AddressInfo).port;
+  await new Promise<void>((resolve) => probe.close(() => resolve()));
+
+  server = createServer((req, res) => {
+    const path = (req.url ?? '').split('?')[0];
+    const handler = routes.get(`${req.method} ${path}`);
+    let body = '';
+    req.on('data', (chunk) => (body += chunk));
+    req.on('end', () => {
+      if (handler) return handler(req, res, body);
+      res.writeHead(404, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ message: 'no route' }));
+    });
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+  base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+});
+afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
+afterEach(() => routes.clear());
+
+function route(method: string, path: string, status: number, data: unknown, headers: Record<string, string> = {}) {
+  routes.set(`${method} ${path}`, (_req, res) => {
+    res.writeHead(status, { 'content-type': 'application/json', ...headers });
+    res.end(typeof data === 'string' ? data : JSON.stringify(data));
+  });
+}
+
+function makePayload(path = '/api/data'): ProxyRequestPayload {
+  return { url: `${base}${path}`, method: 'GET', headers: {}, timeout: 5000 };
+}
 
 function makeCallbacks(overrides?: Partial<PipelineCallbacks>): PipelineCallbacks {
   return {
@@ -21,18 +55,15 @@ function makeCallbacks(overrides?: Partial<PipelineCallbacks>): PipelineCallback
 }
 
 describe('runProxyPipeline', () => {
-  beforeEach(() => nock.cleanAll());
-  afterEach(() => nock.cleanAll());
-
   describe('happy path — upstream request', () => {
     it('calls axiosProxyRequest and invokes onSuccess', async () => {
       const responseData = { id: 1 };
-      nock('http://example.com').get('/api/data').reply(200, responseData);
+      route('GET', '/api/data', 200, responseData);
 
       const callbacks = makeCallbacks();
       const hooks: PipelineHooks = {};
 
-      await runProxyPipeline(BASE_PAYLOAD, hooks, callbacks, Date.now());
+      await runProxyPipeline(makePayload(), hooks, callbacks, Date.now());
 
       expect(callbacks.onSuccess).toHaveBeenCalledOnce();
       const successArg = (callbacks.onSuccess as ReturnType<typeof vi.fn>).mock.calls[0][0] as ProxyResponse;
@@ -41,40 +72,41 @@ describe('runProxyPipeline', () => {
     });
 
     it('does not call onShortCircuit or onError on success', async () => {
-      nock('http://example.com').get('/api/data').reply(200, {});
+      route('GET', '/api/data', 200, {});
 
       const callbacks = makeCallbacks();
-      await runProxyPipeline(BASE_PAYLOAD, {}, callbacks, Date.now());
+      await runProxyPipeline(makePayload(), {}, callbacks, Date.now());
 
       expect(callbacks.onShortCircuit).not.toHaveBeenCalled();
       expect(callbacks.onError).not.toHaveBeenCalled();
     });
 
     it('fires onResponse stats with source=upstream after success', async () => {
-      nock('http://example.com').get('/api/data').reply(200, { x: 1 }, { 'content-length': '9' });
+      route('GET', '/api/data', 200, { x: 1 });
 
       const onResponse = vi.fn();
       const callbacks = makeCallbacks();
       const startedAt = Date.now();
+      const payload = makePayload();
 
-      await runProxyPipeline(BASE_PAYLOAD, { onResponse }, callbacks, startedAt);
+      await runProxyPipeline(payload, { onResponse }, callbacks, startedAt);
 
       expect(onResponse).toHaveBeenCalledOnce();
       const stats = onResponse.mock.calls[0][0];
       expect(stats.source).toBe('upstream');
-      expect(stats.url).toBe(BASE_PAYLOAD.url);
-      expect(stats.method).toBe(BASE_PAYLOAD.method);
+      expect(stats.url).toBe(payload.url);
+      expect(stats.method).toBe(payload.method);
       expect(stats.status).toBe(200);
       expect(typeof stats.durationMs).toBe('number');
     });
 
     it('calls beforeRequest hook when provided and it returns void', async () => {
-      nock('http://example.com').get('/api/data').reply(200, { ok: true });
+      route('GET', '/api/data', 200, { ok: true });
 
       const beforeRequest = vi.fn().mockResolvedValue(undefined);
       const callbacks = makeCallbacks();
 
-      await runProxyPipeline(BASE_PAYLOAD, { beforeRequest }, callbacks, Date.now());
+      await runProxyPipeline(makePayload(), { beforeRequest }, callbacks, Date.now());
 
       expect(beforeRequest).toHaveBeenCalledOnce();
       expect(callbacks.onSuccess).toHaveBeenCalledOnce();
@@ -87,12 +119,11 @@ describe('runProxyPipeline', () => {
       const beforeRequest = vi.fn().mockResolvedValue(shortCircuit);
       const callbacks = makeCallbacks();
 
-      await runProxyPipeline(BASE_PAYLOAD, { beforeRequest }, callbacks, Date.now());
+      await runProxyPipeline(makePayload(), { beforeRequest }, callbacks, Date.now());
 
       expect(callbacks.onShortCircuit).toHaveBeenCalledWith(shortCircuit);
       expect(callbacks.onSuccess).not.toHaveBeenCalled();
       expect(callbacks.onError).not.toHaveBeenCalled();
-      // axios should NOT have been called — nock would throw if it were
     });
 
     it('fires onResponse stats with source=short-circuit', async () => {
@@ -101,7 +132,7 @@ describe('runProxyPipeline', () => {
       const onResponse = vi.fn();
       const callbacks = makeCallbacks();
 
-      await runProxyPipeline(BASE_PAYLOAD, { beforeRequest, onResponse }, callbacks, Date.now());
+      await runProxyPipeline(makePayload(), { beforeRequest, onResponse }, callbacks, Date.now());
 
       expect(onResponse).toHaveBeenCalledOnce();
       const stats = onResponse.mock.calls[0][0];
@@ -112,17 +143,17 @@ describe('runProxyPipeline', () => {
 
   describe('error path', () => {
     it('calls onError when axios throws', async () => {
-      nock('http://example.com').get('/api/data').reply(500, { error: 'boom' });
+      route('GET', '/api/data', 500, { error: 'boom' });
 
       const callbacks = makeCallbacks();
-      await runProxyPipeline(BASE_PAYLOAD, {}, callbacks, Date.now());
+      await runProxyPipeline(makePayload(), {}, callbacks, Date.now());
 
       expect(callbacks.onError).toHaveBeenCalledOnce();
       expect(callbacks.onSuccess).not.toHaveBeenCalled();
     });
 
     it('fires stats using error returned from onError callback', async () => {
-      nock('http://example.com').get('/api/data').reply(500, { error: 'boom' });
+      route('GET', '/api/data', 500, { error: 'boom' });
 
       const transformedError: ProxyError = Object.assign(new Error('transformed'), { status: 503, code: 'UPSTREAM_TIMEOUT' });
       const onResponse = vi.fn();
@@ -130,7 +161,7 @@ describe('runProxyPipeline', () => {
         onError: vi.fn().mockResolvedValue(transformedError),
       });
 
-      await runProxyPipeline(BASE_PAYLOAD, { onResponse }, callbacks, Date.now());
+      await runProxyPipeline(makePayload(), { onResponse }, callbacks, Date.now());
 
       expect(onResponse).toHaveBeenCalledOnce();
       const stats = onResponse.mock.calls[0][0];
@@ -139,11 +170,11 @@ describe('runProxyPipeline', () => {
     });
 
     it('fires stats even if onError is slow (stats use transformed error)', async () => {
-      nock('http://example.com').get('/api/data').replyWithError({ message: 'refused', code: 'ECONNREFUSED' });
-
+      // Unreachable upstream → real network error.
       const onResponse = vi.fn();
       const callbacks = makeCallbacks();
-      await runProxyPipeline(BASE_PAYLOAD, { onResponse }, callbacks, Date.now());
+      const payload: ProxyRequestPayload = { url: `http://127.0.0.1:${closedPort}/api/data`, method: 'GET', headers: {}, timeout: 5000 };
+      await runProxyPipeline(payload, { onResponse }, callbacks, Date.now());
 
       expect(onResponse).toHaveBeenCalledOnce();
     });
@@ -151,19 +182,19 @@ describe('runProxyPipeline', () => {
 
   describe('onResponse edge cases', () => {
     it('does not throw when onResponse is undefined', async () => {
-      nock('http://example.com').get('/api/data').reply(200, {});
+      route('GET', '/api/data', 200, {});
       const callbacks = makeCallbacks();
 
-      await expect(runProxyPipeline(BASE_PAYLOAD, {}, callbacks, Date.now())).resolves.toBeUndefined();
+      await expect(runProxyPipeline(makePayload(), {}, callbacks, Date.now())).resolves.toBeUndefined();
     });
 
     it('swallows errors thrown by onResponse (success path)', async () => {
-      nock('http://example.com').get('/api/data').reply(200, {});
+      route('GET', '/api/data', 200, {});
 
       const onResponse = vi.fn().mockRejectedValue(new Error('stats callback crash'));
       const callbacks = makeCallbacks();
 
-      await expect(runProxyPipeline(BASE_PAYLOAD, { onResponse }, callbacks, Date.now())).resolves.toBeUndefined();
+      await expect(runProxyPipeline(makePayload(), { onResponse }, callbacks, Date.now())).resolves.toBeUndefined();
     });
 
     it('swallows errors thrown by onResponse (short-circuit path)', async () => {
@@ -173,27 +204,27 @@ describe('runProxyPipeline', () => {
       const callbacks = makeCallbacks();
 
       await expect(
-        runProxyPipeline(BASE_PAYLOAD, { beforeRequest, onResponse }, callbacks, Date.now())
+        runProxyPipeline(makePayload(), { beforeRequest, onResponse }, callbacks, Date.now())
       ).resolves.toBeUndefined();
     });
 
     it('fires onResponse at most once (fire-once semantics)', async () => {
-      nock('http://example.com').get('/api/data').reply(200, {});
+      route('GET', '/api/data', 200, {});
 
       const onResponse = vi.fn().mockResolvedValue(undefined);
       const callbacks = makeCallbacks();
 
-      await runProxyPipeline(BASE_PAYLOAD, { onResponse }, callbacks, Date.now());
+      await runProxyPipeline(makePayload(), { onResponse }, callbacks, Date.now());
       expect(onResponse).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('no beforeRequest hook', () => {
     it('skips beforeRequest call when hook is absent', async () => {
-      nock('http://example.com').get('/api/data').reply(200, {});
+      route('GET', '/api/data', 200, {});
       const callbacks = makeCallbacks();
 
-      await runProxyPipeline(BASE_PAYLOAD, {}, callbacks, Date.now());
+      await runProxyPipeline(makePayload(), {}, callbacks, Date.now());
 
       expect(callbacks.onSuccess).toHaveBeenCalledOnce();
     });

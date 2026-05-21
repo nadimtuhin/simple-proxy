@@ -1,8 +1,8 @@
 {
   "name": "express-simple-proxy",
   "version": "2.0.2",
-  "description": "DEPRECATED: use @simple-proxy/express instead",
-  "deprecated": "This package has moved to @simple-proxy/express. Run: npm install @simple-proxy/express",
+  "description": "DEPRECATED: use @nadimtuhin/simple-proxy-express instead",
+  "deprecated": "This package has moved to @nadimtuhin/simple-proxy-express. Run: npm install @nadimtuhin/simple-proxy-express",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

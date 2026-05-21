@@ -1,4 +1,4 @@
-# @simple-proxy/testkit
+# @nadimtuhin/simple-proxy-testkit
 
 Internal compliance test suite for [`@simple-proxy`](../../) adapters. Not published to npm.
 
@@ -47,7 +47,7 @@ Registers a Vitest `describe` block named `compliance suite` containing all scen
 Starts a lightweight HTTP server used by the compliance suite as the upstream target. Exposed for use in adapter-specific tests that need a controllable upstream.
 
 ```typescript
-import { createMockUpstream } from '@simple-proxy/testkit';
+import { createMockUpstream } from '@nadimtuhin/simple-proxy-testkit';
 
 const upstream = await createMockUpstream();
 // upstream.url   — base URL to point the proxy at

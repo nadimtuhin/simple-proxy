@@ -61,9 +61,9 @@ A new adapter is a package under `packages/` that wraps `@simple-proxy/core`.
    All ten compliance scenarios must pass before the adapter is considered complete. See [`packages/testkit/README.md`](packages/testkit/README.md) for the full scenario list.
 
 4. Add the package to the root `pnpm-workspace.yaml` and the adapter table in the root `README.md`.
-5. Because `@simple-proxy/testkit` is private, reference it via workspace path in `devDependencies`:
+5. Because `@nadimtuhin/simple-proxy-testkit` is private, reference it via workspace path in `devDependencies`:
    ```json
-   "@simple-proxy/testkit": "workspace:*"
+   "@nadimtuhin/simple-proxy-testkit": "workspace:*"
    ```
 
 ## Running integration tests
@@ -82,7 +82,7 @@ pnpm test
 The mock upstream can also be used in adapter-specific tests:
 
 ```typescript
-import { createMockUpstream } from '@simple-proxy/testkit';
+import { createMockUpstream } from '@nadimtuhin/simple-proxy-testkit';
 
 const upstream = await createMockUpstream();
 // upstream.url, upstream.close(), upstream.resetCounters()

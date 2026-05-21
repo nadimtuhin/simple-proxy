@@ -1,5 +1,5 @@
 {
-  "name": "@simple-proxy/testkit",
+  "name": "@nadimtuhin/simple-proxy-testkit",
   "version": "0.0.0",
   "private": true,
   "description": "Shared compliance test suite for @simple-proxy adapters (not published)",

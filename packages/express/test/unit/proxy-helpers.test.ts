@@ -7,6 +7,7 @@ import {
   sendShortCircuit,
   reportStats,
 } from '../../src/proxy.js';
+import { createFormDataPayload, generateCurlCommand } from '../../src/utils.js';
 import type { ProxyRequestPayload, ProxyStats } from '../../src/types.js';
 import type { RequestWithFiles } from '../../src/types.js';
 
@@ -118,5 +119,41 @@ describe('reportStats', () => {
     const stats: ProxyStats = { url: 'x', method: 'GET', status: 200, durationMs: 10, source: 'upstream' };
     await expect(reportStats(onResponse, stats, mockReq, mockRes)).resolves.toBeUndefined();
     consoleSpy.mockRestore();
+  });
+});
+
+describe('createFormDataPayload (utils)', () => {
+  it('returns FormData from req.file when req.files is not set', () => {
+    const req: RequestWithFiles = {
+      body: {},
+      file: {
+        fieldname: 'avatar',
+        originalname: 'pic.png',
+        encoding: '7bit',
+        mimetype: 'image/png',
+        buffer: Buffer.from('data'),
+        size: 4,
+      },
+    } as RequestWithFiles;
+    const formData = createFormDataPayload(req);
+    expect(formData).toBeDefined();
+    expect(typeof formData.getHeaders).toBe('function');
+  });
+});
+
+describe('generateCurlCommand (utils)', () => {
+  it('returns a string when req is provided', () => {
+    const payload: ProxyRequestPayload = {
+      url: 'http://example.com/test',
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      timeout: 5000,
+    };
+    const req: RequestWithFiles = {
+      body: { key: 'value' },
+    } as RequestWithFiles;
+    const result = generateCurlCommand(payload, req);
+    expect(typeof result).toBe('string');
+    expect(result).toContain('curl');
   });
 });

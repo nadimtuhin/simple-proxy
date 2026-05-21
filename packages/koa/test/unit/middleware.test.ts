@@ -1,8 +1,21 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import nock from 'nock';
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
+import { createServer, type Server, type IncomingMessage, type ServerResponse } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import type { Context } from 'koa';
 import { createKoaProxyMiddleware, defaultKoaErrorHandler } from '../../src/middleware.js';
 import type { KoaProxyConfig, ProxyError } from '../../src/types.js';
+
+type RouteHandler = (req: IncomingMessage, res: ServerResponse, body: string) => void;
+const routes = new Map<string, RouteHandler>();
+let server: Server;
+let BASE: string;
+
+function route(method: string, path: string, status: number, data: unknown, headers: Record<string, string> = {}) {
+  routes.set(`${method} ${path}`, (_req, res) => {
+    res.writeHead(status, { 'content-type': 'application/json', ...headers });
+    res.end(typeof data === 'string' ? data : JSON.stringify(data));
+  });
+}
 
 function mockCtx(overrides: Partial<{
   method: string;
@@ -56,13 +69,26 @@ describe('defaultKoaErrorHandler', () => {
 });
 
 describe('createKoaProxyMiddleware', () => {
-  const BASE = 'http://upstream.test';
-
-  beforeEach(() => nock.cleanAll());
-  afterEach(() => nock.cleanAll());
+  beforeAll(async () => {
+    server = createServer((req, res) => {
+      const path = (req.url ?? '').split('?')[0];
+      const handler = routes.get(`${req.method} ${path}`);
+      let body = '';
+      req.on('data', (chunk) => (body += chunk));
+      req.on('end', () => {
+        if (handler) return handler(req, res, body);
+        res.writeHead(404, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ message: 'no route' }));
+      });
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+    BASE = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  });
+  afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
+  afterEach(() => routes.clear());
 
   it('proxies GET and sets ctx.status + ctx.body', async () => {
-    nock(BASE).get('/health').reply(200, { ok: true });
+    route('GET', '/health', 200, { ok: true });
     const mw = createKoaProxyMiddleware({ baseURL: BASE });
     const ctx = mockCtx({ path: '/health' });
     await mw(ctx, vi.fn());
@@ -71,10 +97,11 @@ describe('createKoaProxyMiddleware', () => {
   });
 
   it('re-serializes JSON body for POST', async () => {
-    let received: string | undefined;
-    nock(BASE).post('/echo').reply(200, function (_uri, body) {
-      received = body as string;
-      return body;
+    let received: unknown;
+    routes.set('POST /echo', (_req, res, body) => {
+      received = JSON.parse(body);
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(body);
     });
     const mw = createKoaProxyMiddleware({ baseURL: BASE });
     const ctx = mockCtx({ method: 'POST', path: '/echo', body: { name: 'test' } });
@@ -84,9 +111,10 @@ describe('createKoaProxyMiddleware', () => {
 
   it('resolves proxyPath template from ctx.params', async () => {
     let calledPath = '';
-    nock(BASE).get('/items/42').reply(200, function (uri) {
-      calledPath = uri;
-      return {};
+    routes.set('GET /items/42', (req, res) => {
+      calledPath = (req.url ?? '').split('?')[0];
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({}));
     });
     const mw = createKoaProxyMiddleware({ baseURL: BASE }, '/items/:id');
     const ctx = mockCtx({ path: '/proxy/42', params: { id: '42' } });
@@ -96,7 +124,11 @@ describe('createKoaProxyMiddleware', () => {
 
   it('beforeRequest short-circuits without hitting upstream', async () => {
     const upstream = vi.fn();
-    nock(BASE).get('/any').reply(200, upstream);
+    routes.set('GET /any', (_req, res) => {
+      upstream();
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({}));
+    });
     const beforeRequest = vi.fn().mockResolvedValue({ status: 403, data: { error: 'forbidden' } });
     const mw = createKoaProxyMiddleware({ baseURL: BASE, beforeRequest });
     const ctx = mockCtx({ path: '/any' });
@@ -106,10 +138,11 @@ describe('createKoaProxyMiddleware', () => {
   });
 
   it('beforeRequest can mutate payload headers', async () => {
-    let sentHeaders: Record<string, string> = {};
-    nock(BASE).get('/secure').reply(200, function () {
-      sentHeaders = this.req.headers as Record<string, string>;
-      return {};
+    let sentHeaders: Record<string, string | string[] | undefined> = {};
+    routes.set('GET /secure', (req, res) => {
+      sentHeaders = req.headers;
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({}));
     });
     const beforeRequest = vi.fn().mockImplementation((payload) => {
       payload.headers['x-injected'] = 'yes';
@@ -121,7 +154,7 @@ describe('createKoaProxyMiddleware', () => {
   });
 
   it('onResponse fires with correct stats on success', async () => {
-    nock(BASE).get('/ping').reply(200, {});
+    route('GET', '/ping', 200, {});
     const onResponse = vi.fn();
     const mw = createKoaProxyMiddleware({ baseURL: BASE, onResponse });
     const ctx = mockCtx({ path: '/ping' });
@@ -134,7 +167,7 @@ describe('createKoaProxyMiddleware', () => {
   });
 
   it('invokes custom errorHandler on upstream error', async () => {
-    nock(BASE).get('/fail').reply(500, { message: 'boom' });
+    route('GET', '/fail', 500, { message: 'boom' });
     const errorHandler = vi.fn();
     const mw = createKoaProxyMiddleware({ baseURL: BASE, errorHandler });
     const ctx = mockCtx({ path: '/fail' });
@@ -144,7 +177,7 @@ describe('createKoaProxyMiddleware', () => {
   });
 
   it('uses defaultKoaErrorHandler when no custom handler provided', async () => {
-    nock(BASE).get('/err').reply(503, { message: 'unavailable' });
+    route('GET', '/err', 503, { message: 'unavailable' });
     const mw = createKoaProxyMiddleware({ baseURL: BASE });
     const ctx = mockCtx({ path: '/err' });
     await mw(ctx, vi.fn());
@@ -153,7 +186,7 @@ describe('createKoaProxyMiddleware', () => {
   });
 
   it('onResponse fires with error stats on upstream failure', async () => {
-    nock(BASE).get('/bad').reply(400, {});
+    route('GET', '/bad', 400, {});
     const onResponse = vi.fn();
     const mw = createKoaProxyMiddleware({ baseURL: BASE, onResponse });
     const ctx = mockCtx({ path: '/bad' });
@@ -164,7 +197,7 @@ describe('createKoaProxyMiddleware', () => {
   });
 
   it('headers() factory is called with ctx', async () => {
-    nock(BASE).get('/').reply(200, {});
+    route('GET', '/', 200, {});
     const headers = vi.fn().mockReturnValue({ 'x-custom': 'value' });
     const mw = createKoaProxyMiddleware({ baseURL: BASE, headers });
     const ctx = mockCtx();

@@ -150,11 +150,129 @@ describe('filterProxyResponseHeaders', () => {
     expect(filterProxyResponseHeaders({ 'Content-Length': '100' })).not.toHaveProperty('Content-Length');
   });
 
+  it('drops CONTENT-LENGTH (uppercase)', () => {
+    expect(filterProxyResponseHeaders({ 'CONTENT-LENGTH': '100' })).not.toHaveProperty('CONTENT-LENGTH');
+  });
+
+  it('drops Content-LENGTH (mixed case variant)', () => {
+    const result = filterProxyResponseHeaders({ 'Content-LENGTH': '100', 'x-foo': 'bar' });
+    expect(result).not.toHaveProperty('Content-LENGTH');
+    expect(result).toHaveProperty('x-foo', 'bar');
+  });
+
   it('keeps other headers', () => {
     expect(filterProxyResponseHeaders({ 'x-custom': 'val' })['x-custom']).toBe('val');
   });
 
   it('returns empty object for empty input', () => {
     expect(filterProxyResponseHeaders({})).toEqual({});
+  });
+
+  it('keeps multiple non-content-length headers', () => {
+    const input = { 'x-req-id': 'abc', 'content-type': 'application/json', 'x-trace': '123' };
+    const result = filterProxyResponseHeaders(input);
+    expect(result).toHaveProperty('x-req-id', 'abc');
+    expect(result).toHaveProperty('content-type', 'application/json');
+    expect(result).toHaveProperty('x-trace', '123');
+  });
+
+  it('strips entries with undefined values', () => {
+    const input = { 'x-good': 'yes', 'x-bad': undefined as unknown as string };
+    const result = filterProxyResponseHeaders(input);
+    expect(result).toHaveProperty('x-good', 'yes');
+    expect(result).not.toHaveProperty('x-bad');
+  });
+});
+
+describe('classifyResponseError — additional edge cases', () => {
+  it('does not set UPSTREAM_AUTH for 400', () => {
+    expect(classifyResponseError(makeAxiosError({ responseStatus: 400, responseData: {} })).code).toBeUndefined();
+  });
+
+  it('does not set UPSTREAM_AUTH for 500', () => {
+    expect(classifyResponseError(makeAxiosError({ responseStatus: 500, responseData: {} })).code).toBeUndefined();
+  });
+
+  it('handles null response data without throwing', () => {
+    const err = makeAxiosError({ responseStatus: 404, responseData: null });
+    const result = classifyResponseError(err);
+    expect(result.status).toBe(404);
+    expect(result.message).toBe('axios error');
+  });
+
+  it('preserves headers for non-auth status', () => {
+    const headers = { 'retry-after': '30' };
+    const result = classifyResponseError(makeAxiosError({ responseStatus: 429, responseData: {}, responseHeaders: headers }));
+    expect(result.headers).toEqual(headers);
+  });
+});
+
+describe('classifyNetworkError — additional edge cases', () => {
+  it('defaults code to NETWORK_ERROR when axiosError.code is undefined', () => {
+    const err = makeAxiosError({ hasResponse: false });
+    // code not set
+    expect(classifyNetworkError(err).code).toBe('NETWORK_ERROR');
+  });
+
+  it('always uses literal network error message', () => {
+    const err = makeAxiosError({ code: 'ECONNABORTED', hasResponse: false, message: 'something else' });
+    expect(classifyNetworkError(err).message).toBe('Network error: No response received');
+  });
+});
+
+describe('isShortCircuitResponse — additional edge cases', () => {
+  it('returns false for undefined', () => {
+    expect(isShortCircuitResponse(undefined)).toBe(false);
+  });
+
+  it('returns false for a string', () => {
+    expect(isShortCircuitResponse('ok')).toBe(false);
+  });
+
+  it('returns false for a number', () => {
+    expect(isShortCircuitResponse(42)).toBe(false);
+  });
+
+  it('returns false for an array', () => {
+    expect(isShortCircuitResponse([])).toBe(false);
+  });
+
+  it('returns false for a boolean', () => {
+    expect(isShortCircuitResponse(true)).toBe(false);
+  });
+
+  it('returns true when status is 0', () => {
+    expect(isShortCircuitResponse({ status: 0, data: null })).toBe(true);
+  });
+
+  it('returns true for status 404', () => {
+    expect(isShortCircuitResponse({ status: 404, data: 'not found' })).toBe(true);
+  });
+});
+
+describe('buildErrorResponseBody — additional edge cases', () => {
+  it('does not include details when data is null', () => {
+    const err: any = Object.assign(new Error('fail'), { code: 'X', data: null });
+    expect('details' in buildErrorResponseBody(err).error).toBe(false);
+  });
+
+  it('does not include details when data is 0 (falsy)', () => {
+    const err: any = Object.assign(new Error('fail'), { code: 'X', data: 0 });
+    expect('details' in buildErrorResponseBody(err).error).toBe(false);
+  });
+
+  it('does not include details when data is empty string (falsy)', () => {
+    const err: any = Object.assign(new Error('fail'), { code: 'X', data: '' });
+    expect('details' in buildErrorResponseBody(err).error).toBe(false);
+  });
+
+  it('includes details when data is empty array (truthy)', () => {
+    const err: any = Object.assign(new Error('fail'), { code: 'X', data: [] });
+    expect(buildErrorResponseBody(err).error.details).toEqual([]);
+  });
+
+  it('preserves message when present', () => {
+    const err: any = Object.assign(new Error('real message'), { code: 'X' });
+    expect(buildErrorResponseBody(err).error.message).toBe('real message');
   });
 });

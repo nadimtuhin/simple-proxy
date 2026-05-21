@@ -148,4 +148,165 @@ describe('generateCurlCommand', () => {
     expect(generateCurlCommand({ url: 'http://x.com', method: 'POST', headers: {}, data: Buffer.from('x') }))
       .toContain("-d '<binary-data>'");
   });
+
+  it('generates command with no headers when headers object is empty', () => {
+    const result = generateCurlCommand({ url: 'http://x.com', method: 'GET', headers: {} });
+    expect(result).toBe("curl -X GET 'http://x.com'");
+  });
+
+  it('skips content-type header when data is FormData', () => {
+    const result = generateCurlCommand(
+      { url: 'http://x.com', method: 'POST', headers: { 'content-type': 'multipart/form-data', 'x-foo': 'bar' }, data: new FormData() },
+      {}
+    );
+    expect(result).not.toContain('content-type');
+    expect(result).toContain("-H 'x-foo: bar'");
+  });
+
+  it('handles array body values in FormData curl representation', () => {
+    const result = generateCurlCommand(
+      { url: 'http://x.com', method: 'POST', headers: {}, data: new FormData() },
+      { body: { tags: ['a', 'b'] } }
+    );
+    expect(result).toContain("-F 'tags=a'");
+    expect(result).toContain("-F 'tags=b'");
+  });
+
+  it('generates command with no data section when data is undefined', () => {
+    const result = generateCurlCommand({ url: 'http://x.com', method: 'GET', headers: { 'x-k': 'v' } });
+    expect(result).not.toContain('-d');
+    expect(result).not.toContain('-F');
+  });
+});
+
+describe('parseSize — additional edge cases', () => {
+  it('returns integer part for decimal string', () => {
+    expect(parseSize('1.5')).toBe(1);
+  });
+
+  it('handles negative numbers', () => {
+    expect(parseSize('-5')).toBe(-5);
+  });
+
+  it('handles leading whitespace', () => {
+    expect(parseSize('  42')).toBe(42);
+  });
+
+  it('handles very large integer string', () => {
+    expect(parseSize('1000000')).toBe(1000000);
+  });
+});
+
+describe('urlJoin — additional edge cases', () => {
+  it('returns empty string for zero parts', () => {
+    expect(urlJoin()).toBe('');
+  });
+
+  it('handles only a query string part', () => {
+    expect(urlJoin('?x=1')).toBe('?x=1');
+  });
+
+  it('handles single base URL', () => {
+    expect(urlJoin('http://example.com')).toBe('http://example.com');
+  });
+
+  it('strips trailing slash from single base', () => {
+    expect(urlJoin('http://example.com/')).toBe('http://example.com');
+  });
+
+  it('handles base with path and query', () => {
+    expect(urlJoin('http://example.com/api', '?q=1')).toBe('http://example.com/api?q=1');
+  });
+});
+
+describe('buildQueryString — additional edge cases', () => {
+  it('encodes space characters in values', () => {
+    const result = buildQueryString({ q: 'hello world' });
+    // URLSearchParams uses + for spaces in application/x-www-form-urlencoded
+    expect(result).toMatch(/^\?(q=hello\+world|q=hello%20world)$/);
+  });
+
+  it('preserves empty string value', () => {
+    const result = buildQueryString({ page: '', limit: '10' });
+    expect(result).toContain('page=');
+    expect(result).toContain('limit=10');
+  });
+
+  it('handles single key-value pair', () => {
+    expect(buildQueryString({ count: '5' })).toBe('?count=5');
+  });
+
+  it('returns empty string for all-undefined values', () => {
+    const result = buildQueryString({ a: undefined, b: undefined });
+    expect(result).toBe('');
+  });
+});
+
+describe('replaceUrlTemplate — additional edge cases', () => {
+  it('replaces same param appearing multiple times', () => {
+    expect(replaceUrlTemplate('/a/:id/b/:id', { id: '9' })).toBe('/a/9/b/9');
+  });
+
+  it('leaves unmatched placeholders in url', () => {
+    expect(replaceUrlTemplate('/users/:id', { foo: 'bar' })).toBe('/users/:id');
+  });
+
+  it('coerces numeric variable values to string', () => {
+    expect(replaceUrlTemplate('/users/:id', { id: 42 })).toBe('/users/42');
+  });
+
+  it('returns url unchanged when variables is empty', () => {
+    expect(replaceUrlTemplate('/static/page', {})).toBe('/static/page');
+  });
+
+  // Bug surfacing test: `:id` regex matches inside `:idCard` — known partial-match issue
+  // The regex /:id/g matches :id as a substring of :idCard when `id` key is processed first.
+  // When keys are processed in insertion order (id before idCard), result is '/users/9Card' not '/users/CARD-42'.
+  // This test documents current (buggy) actual behavior to make the issue visible.
+  it('exposes regex collision: :id is replaced inside :idCard when id key is ordered first', () => {
+    // Object key order: id first, idCard second — id replacement clobbers part of :idCard
+    const result = replaceUrlTemplate('/users/:idCard', { id: '9', idCard: 'CARD-42' });
+    // KNOWN BUG: should be '/users/CARD-42' but is '/users/9Card' due to greedy substring regex
+    expect(result).toBe('/users/9Card');
+  });
+});
+
+describe('resolveProxyPath — additional edge cases', () => {
+  it('falls back to reqPath when proxyPath is empty string (falsy)', () => {
+    expect(resolveProxyPath('', '/actual-path', {})).toBe('/actual-path');
+  });
+
+  it('uses proxyPath verbatim when no placeholders match', () => {
+    expect(resolveProxyPath('/fixed/path', '/other', {})).toBe('/fixed/path');
+  });
+});
+
+describe('createFormDataPayload — additional edge cases', () => {
+  it('skips null body values', () => {
+    const fd = createFormDataPayload({ body: { nullfield: null as unknown as string, age: '30' } });
+    const buf = fd.getBuffer().toString();
+    expect(buf).not.toContain('nullfield');
+    expect(buf).toContain('"age"');
+  });
+
+  it('skips undefined body values', () => {
+    const fd = createFormDataPayload({ body: { undeffield: undefined as unknown as string, age: '30' } });
+    const buf = fd.getBuffer().toString();
+    expect(buf).not.toContain('undeffield');
+    expect(buf).toContain('"age"');
+  });
+
+  it('handles only files with no body', () => {
+    const files: FileUpload[] = [{
+      fieldname: 'doc',
+      originalname: 'file.pdf',
+      encoding: '7bit',
+      mimetype: 'application/pdf',
+      buffer: Buffer.from('pdf-content'),
+      size: 11,
+    }];
+    const fd = createFormDataPayload({ files });
+    const buf = fd.getBuffer().toString();
+    expect(buf).toContain('file.pdf');
+  });
 });

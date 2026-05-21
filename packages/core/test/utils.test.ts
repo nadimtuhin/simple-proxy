@@ -259,15 +259,13 @@ describe('replaceUrlTemplate — additional edge cases', () => {
     expect(replaceUrlTemplate('/static/page', {})).toBe('/static/page');
   });
 
-  // Bug surfacing test: `:id` regex matches inside `:idCard` — known partial-match issue
-  // The regex /:id/g matches :id as a substring of :idCard when `id` key is processed first.
-  // When keys are processed in insertion order (id before idCard), result is '/users/9Card' not '/users/CARD-42'.
-  // This test documents current (buggy) actual behavior to make the issue visible.
-  it('exposes regex collision: :id is replaced inside :idCard when id key is ordered first', () => {
-    // Object key order: id first, idCard second — id replacement clobbers part of :idCard
-    const result = replaceUrlTemplate('/users/:idCard', { id: '9', idCard: 'CARD-42' });
-    // KNOWN BUG: should be '/users/CARD-42' but is '/users/9Card' due to greedy substring regex
-    expect(result).toBe('/users/9Card');
+  // Regression test: `:id` regex should NOT match inside `:idCard`
+  // The regex must use negative lookahead to avoid substring matches
+  it('does not replace :id inside :idCard when id key is ordered first', () => {
+    // Object key order: id first, idCard second — id should only match exact placeholder
+    const result = replaceUrlTemplate('/users/:id/:idCard', { id: '9', idCard: 'CARD-42' });
+    // Expected: '/users/9/CARD-42' with negative lookahead regex
+    expect(result).toBe('/users/9/CARD-42');
   });
 });
 

@@ -38,7 +38,7 @@ export function urlJoin(...parts: string[]): string {
 
 export function replaceUrlTemplate(url: string, urlVariables: UrlVariables): string {
   return Object.keys(urlVariables).reduce((result, placeholder) => {
-    return result.replace(new RegExp(`:${placeholder}`, 'g'), String(urlVariables[placeholder]));
+    return result.replace(new RegExp(`:${placeholder}(?![a-zA-Z0-9_])`, 'g'), String(urlVariables[placeholder]));
   }, url);
 }
 

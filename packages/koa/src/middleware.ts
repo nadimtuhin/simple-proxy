@@ -56,9 +56,7 @@ async function runKoaProxy(
   logDevRequest(payload, ctx);
 
   const hooks: PipelineHooks = {
-    beforeRequest: config.beforeRequest
-      ? (pl) => config.beforeRequest!(pl, ctx)
-      : undefined,
+    ...(config.beforeRequest ? { beforeRequest: (pl) => config.beforeRequest!(pl, ctx) } : {}),
     onResponse: fireStats,
   };
 

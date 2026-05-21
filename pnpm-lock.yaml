@@ -249,8 +249,8 @@ importers:
         specifier: ^4.18.0
         version: 4.22.2
       fastify:
-        specifier: ^4.0.0
-        version: 4.29.1
+        specifier: ^5.0.0
+        version: 5.8.5
       koa:
         specifier: ^2.14.0
         version: 2.16.4

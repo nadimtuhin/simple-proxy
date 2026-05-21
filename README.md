@@ -10,21 +10,105 @@ Framework-agnostic HTTP proxy utilities for Node.js. Built on axios.
 | [`@simple-proxy/express`](./packages/express) | Express adapter |
 | [`@simple-proxy/fastify`](./packages/fastify) | Fastify adapter |
 | [`@simple-proxy/koa`](./packages/koa) | Koa adapter |
+| [`express-simple-proxy`](./packages/express-simple-proxy) | **Deprecated** — migrate to `@simple-proxy/express` |
+| [`@simple-proxy/testkit`](./packages/testkit) | Shared compliance suite for adapter authors (internal, not published to npm) |
 
 ## Quick Start
 
-Pick the package for your framework:
+### Express
 
 ```bash
-# Express
 npm install @simple-proxy/express
+```
 
-# Fastify
+```typescript
+import express from 'express';
+import { createProxyController } from '@simple-proxy/express';
+
+const app = express();
+
+const proxy = createProxyController({
+  baseURL: 'https://api.example.com',
+  headers: (req) => ({
+    Authorization: req.headers.authorization ?? '',
+  }),
+});
+
+app.use('/api', proxy);
+app.listen(3000);
+```
+
+### Fastify
+
+```bash
 npm install @simple-proxy/fastify
+```
 
-# Koa
+```typescript
+import Fastify from 'fastify';
+import { createFastifyProxyHandler } from '@simple-proxy/fastify';
+
+const fastify = Fastify();
+
+const handler = createFastifyProxyHandler({
+  baseURL: 'https://api.example.com',
+  headers: (req) => ({
+    Authorization: req.headers.authorization ?? '',
+  }),
+});
+
+fastify.route({
+  method: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  url: '/*',
+  handler,
+});
+
+fastify.listen({ port: 3000 });
+```
+
+### Koa
+
+```bash
 npm install @simple-proxy/koa
 ```
+
+```typescript
+import Koa from 'koa';
+import Router from '@koa/router';
+import bodyParser from 'koa-bodyparser';
+import { createKoaProxyMiddleware } from '@simple-proxy/koa';
+
+const app = new Koa();
+const router = new Router();
+
+app.use(bodyParser());
+
+const proxy = createKoaProxyMiddleware({
+  baseURL: 'https://api.example.com',
+  headers: (ctx) => ({
+    Authorization: ctx.get('authorization'),
+  }),
+});
+
+router.all('(.*)', proxy);
+app.use(router.routes());
+app.use(router.allowedMethods());
+
+app.listen(3000);
+```
+
+## Adapter Feature Matrix
+
+| Feature | Express | Fastify | Koa |
+|---------|---------|---------|-----|
+| `baseURL` | yes | yes | yes |
+| `headers` hook | yes | yes | yes |
+| `timeout` | yes | yes | yes |
+| `beforeRequest` hook | yes | yes | yes |
+| `onResponse` hook | yes | yes | yes |
+| `errorHandler` | yes | yes | yes |
+| Multipart / file uploads | `multer` | `@fastify/multipart` | `@koa/multer` |
+| Short-circuit response | yes | yes | yes |
 
 ## Development
 

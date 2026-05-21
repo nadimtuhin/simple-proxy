@@ -43,17 +43,18 @@ async function createExpressProxy(options: CreateProxyOptions): Promise<ProxyHan
   const upload = multer({ storage: multer.memoryStorage() });
   app.use(upload.any());
 
-  const proxy = createProxyController({
+  const config: any = {
     baseURL: options.upstreamUrl,
     headers: options.headers ?? (() => ({})),
     timeout: options.timeout,
-    beforeRequest: options.beforeRequest
-      ? (payload, _req) => options.beforeRequest!(payload)
-      : undefined,
-    onResponse: options.onResponse
-      ? (stats, _req, _res) => options.onResponse!(stats)
-      : undefined,
-  });
+  };
+  if (options.beforeRequest) {
+    config.beforeRequest = (payload: any, _req: any) => options.beforeRequest!(payload);
+  }
+  if (options.onResponse) {
+    config.onResponse = (stats: any, _req: any, _res: any) => options.onResponse!(stats);
+  }
+  const proxy = createProxyController(config);
 
   app.all('*', proxy(options.proxyPath) as any);
 
@@ -70,20 +71,18 @@ async function createExpressProxy(options: CreateProxyOptions): Promise<ProxyHan
 async function createFastifyProxy(options: CreateProxyOptions): Promise<ProxyHandle> {
   const fastify = Fastify({ logger: false });
 
-  const handler = createFastifyProxyHandler(
-    {
-      baseURL: options.upstreamUrl,
-      headers: options.headers ? (_req: FastifyRequest) => options.headers!() : () => ({}),
-      timeout: options.timeout,
-      beforeRequest: options.beforeRequest
-        ? (payload, _req) => options.beforeRequest!(payload)
-        : undefined,
-      onResponse: options.onResponse
-        ? (stats, _req, _reply) => options.onResponse!(stats)
-        : undefined,
-    },
-    options.proxyPath
-  );
+  const config: any = {
+    baseURL: options.upstreamUrl,
+    headers: options.headers ? (_req: FastifyRequest) => options.headers!() : () => ({}),
+    timeout: options.timeout,
+  };
+  if (options.beforeRequest) {
+    config.beforeRequest = (payload: any, _req: any) => options.beforeRequest!(payload);
+  }
+  if (options.onResponse) {
+    config.onResponse = (stats: any, _req: any, _reply: any) => options.onResponse!(stats);
+  }
+  const handler = createFastifyProxyHandler(config, options.proxyPath);
 
   fastify.route({
     method: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
@@ -106,20 +105,18 @@ async function createKoaProxy(options: CreateProxyOptions): Promise<ProxyHandle>
 
   app.use(bodyParser());
 
-  const middleware = createKoaProxyMiddleware(
-    {
-      baseURL: options.upstreamUrl,
-      headers: options.headers ? (_ctx: any) => options.headers!() : () => ({}),
-      timeout: options.timeout,
-      beforeRequest: options.beforeRequest
-        ? (payload, _ctx) => options.beforeRequest!(payload)
-        : undefined,
-      onResponse: options.onResponse
-        ? (stats, _ctx) => options.onResponse!(stats)
-        : undefined,
-    },
-    options.proxyPath
-  );
+  const config: any = {
+    baseURL: options.upstreamUrl,
+    headers: options.headers ? (_ctx: any) => options.headers!() : () => ({}),
+    timeout: options.timeout,
+  };
+  if (options.beforeRequest) {
+    config.beforeRequest = (payload: any, _ctx: any) => options.beforeRequest!(payload);
+  }
+  if (options.onResponse) {
+    config.onResponse = (stats: any, _ctx: any) => options.onResponse!(stats);
+  }
+  const middleware = createKoaProxyMiddleware(config, options.proxyPath);
 
   router.all('(.*)', middleware);
   app.use(router.routes());
@@ -203,13 +200,13 @@ describe('Cross-adapter parity', () => {
         const res = await fetch(`${handle.url}/health`);
         const body = (await res.json()) as any;
         await handle.close();
-        return { adapter: ADAPTERS[i][0], status: res.status, body };
+        return { adapter: ADAPTERS[i]![0]!, status: res.status, body } as const;
       })
     );
 
-    for (const { adapter, status, body } of results) {
-      expect(status, `${adapter} status`).toBe(200);
-      expect(body.status, `${adapter} body.status`).toBe('ok');
+    for (const result of results) {
+      expect(result.status, `${result.adapter} status`).toBe(200);
+      expect(result.body.status, `${result.adapter} body.status`).toBe('ok');
     }
   });
 
@@ -229,7 +226,7 @@ describe('Cross-adapter parity', () => {
         });
         const body = (await res.json()) as any;
         await handle.close();
-        return { adapter: ADAPTERS[i][0], status: res.status, body };
+        return { adapter: ADAPTERS[i]![0]!, status: res.status, body } as const;
       })
     );
 
@@ -253,7 +250,7 @@ describe('Cross-adapter parity', () => {
         const res = await fetch(`${handle.url}/error/400`);
         const body = (await res.json()) as any;
         await handle.close();
-        return { adapter: ADAPTERS[i][0], status: res.status, body };
+        return { adapter: ADAPTERS[i]![0]!, status: res.status, body } as const;
       })
     );
 
@@ -275,7 +272,7 @@ describe('Cross-adapter parity', () => {
         const res = await fetch(`${handle.url}/error/500`);
         const body = (await res.json()) as any;
         await handle.close();
-        return { adapter: ADAPTERS[i][0], status: res.status, body };
+        return { adapter: ADAPTERS[i]![0]!, status: res.status, body } as const;
       })
     );
 
@@ -304,7 +301,7 @@ describe('Cross-adapter parity', () => {
         const res = await fetch(`${handle.url}/slow?delay=2000`);
         const body = (await res.json()) as any;
         await handle.close();
-        return { adapter: ADAPTERS[i][0], status: res.status, body };
+        return { adapter: ADAPTERS[i]![0]!, status: res.status, body } as const;
       })
     );
 
@@ -340,7 +337,7 @@ describe('Cross-adapter parity', () => {
         const res = await fetch(`${handle.url}/health`);
         const body = (await res.json()) as any;
         await handle.close();
-        return { adapter: ADAPTERS[i][0], status: res.status, body };
+        return { adapter: ADAPTERS[i]![0]!, status: res.status, body } as const;
       })
     );
 
@@ -371,7 +368,7 @@ describe('Cross-adapter parity', () => {
         const res = await fetch(`${handle.url}/headers`);
         const body = (await res.json()) as any;
         await handle.close();
-        return { adapter: ADAPTERS[i][0], status: res.status, body };
+        return { adapter: ADAPTERS[i]![0]!, status: res.status, body } as const;
       })
     );
 
@@ -408,11 +405,12 @@ describe('Cross-adapter parity', () => {
         const body = (await res.json()) as any;
         const xSource = res.headers.get('x-source');
         await handle.close();
-        return { adapter: ADAPTERS[i][0], status: res.status, body, xSource };
+        return { adapter: ADAPTERS[i]![0]!, status: res.status, body, xSource };
       })
     );
 
-    for (const { adapter, status, body, xSource } of results) {
+    for (const result of results) {
+      const { adapter, status, body, xSource } = result;
       expect(status, `${adapter} status`).toBe(202);
       expect(body, `${adapter} body`).toMatchObject({ cached: true });
       expect(xSource, `${adapter} x-source header`).toBe('cache');
@@ -430,7 +428,7 @@ describe('Cross-adapter parity', () => {
           upstreamUrl: mockUpstream.url,
           method: 'GET',
           route: '/health',
-          onResponse: callbacks[i],
+          onResponse: callbacks[i]!,
         })
       )
     );
@@ -439,8 +437,8 @@ describe('Cross-adapter parity', () => {
       handles.map(async (handle, i) => {
         await fetch(`${handle.url}/health`);
         await handle.close();
-        expect(callbacks[i], `${ADAPTERS[i][0]} onResponse called`).toHaveBeenCalledTimes(1);
-        expect(callbacks[i].mock.calls[0][0], `${ADAPTERS[i][0]} stats`).toMatchObject({
+        expect(callbacks[i]!, `${ADAPTERS[i]![0]} onResponse called`).toHaveBeenCalledTimes(1);
+        expect(callbacks[i]!.mock.calls[0]![0]!, `${ADAPTERS[i]![0]} stats`).toMatchObject({
           method: 'GET',
           status: 200,
           source: 'upstream',

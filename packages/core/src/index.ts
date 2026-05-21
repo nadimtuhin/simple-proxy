@@ -1,4 +1,5 @@
 export { axiosProxyRequest } from './proxy.js';
+export { buildUpstreamStats, buildErrorStats } from './stats.js';
 export {
   classifyResponseError,
   classifyNetworkError,

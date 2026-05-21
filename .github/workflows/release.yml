@@ -28,6 +28,12 @@ jobs:
       - name: Build
         run: pnpm -r build
 
+      - name: Test
+        run: pnpm -r test
+
+      - name: Typecheck
+        run: pnpm -r typecheck
+
       - name: Create Release PR or Publish
         uses: changesets/action@v1
         with:

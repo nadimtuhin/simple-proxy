@@ -42,6 +42,30 @@ importers:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.41)
 
+  examples/fastify-example:
+    dependencies:
+      '@simple-proxy/fastify':
+        specifier: workspace:*
+        version: link:../../packages/fastify
+      fastify:
+        specifier: ^4.0.0
+        version: 4.29.1
+
+  examples/koa-example:
+    dependencies:
+      '@koa/router':
+        specifier: ^12.0.0
+        version: 12.0.2
+      '@simple-proxy/koa':
+        specifier: workspace:*
+        version: link:../../packages/koa
+      koa:
+        specifier: ^2.14.0
+        version: 2.16.4
+      koa-bodyparser:
+        specifier: ^4.4.0
+        version: 4.4.1
+
   packages/core:
     dependencies:
       axios:
@@ -191,6 +215,42 @@ importers:
         specifier: workspace:*
         version: link:../core
     devDependencies:
+      '@koa/router':
+        specifier: ^12.0.0
+        version: 12.0.2
+      '@simple-proxy/express':
+        specifier: workspace:*
+        version: link:../express
+      '@simple-proxy/fastify':
+        specifier: workspace:*
+        version: link:../fastify
+      '@simple-proxy/koa':
+        specifier: workspace:*
+        version: link:../koa
+      '@types/koa':
+        specifier: ^2.15.0
+        version: 2.15.2
+      '@types/koa-bodyparser':
+        specifier: ^4.3.12
+        version: 4.3.13
+      '@types/koa__router':
+        specifier: ^12.0.4
+        version: 12.0.5
+      express:
+        specifier: ^4.18.0
+        version: 4.22.2
+      fastify:
+        specifier: ^4.0.0
+        version: 4.29.1
+      koa:
+        specifier: ^2.14.0
+        version: 2.16.4
+      koa-bodyparser:
+        specifier: ^4.4.0
+        version: 4.4.1
+      multer:
+        specifier: ^1.4.5-lts.1
+        version: 1.4.5-lts.2
       typescript:
         specifier: ^5.0.0
         version: 5.9.3

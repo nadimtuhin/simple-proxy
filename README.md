@@ -110,6 +110,23 @@ app.listen(3000);
 | Multipart / file uploads | `multer` | `@fastify/multipart` | `@koa/multer` |
 | Short-circuit response | yes | yes | yes |
 
+## Examples
+
+Runnable example apps are in the [`examples/`](./examples) directory.
+
+| Example | Adapter | Path |
+|---------|---------|------|
+| Fastify proxy | `@simple-proxy/fastify` | [`examples/fastify-example/`](./examples/fastify-example) |
+| Koa proxy | `@simple-proxy/koa` | [`examples/koa-example/`](./examples/koa-example) |
+
+Each example proxies `https://jsonplaceholder.typicode.com` and starts with a single `node` command:
+
+```bash
+pnpm install
+node examples/fastify-example/server.js  # http://localhost:3000
+node examples/koa-example/server.js      # http://localhost:3001
+```
+
 ## Development
 
 ```bash
@@ -118,6 +135,27 @@ pnpm build        # build all packages
 pnpm test         # test all packages
 pnpm typecheck    # typecheck all packages
 ```
+
+## Release Process
+
+This monorepo uses [Changesets](https://github.com/changesets/changesets) with pnpm.
+
+**Publishing flow:**
+
+1. After merging changes, add a changeset describing what changed:
+   ```bash
+   pnpm changeset
+   ```
+2. Commit the generated `.changeset/*.md` file and push to main.
+3. CI automatically opens a "Version Packages" PR that bumps versions and updates changelogs.
+4. Merge that PR — CI then runs build → test → typecheck → `changeset publish` to npm.
+
+**Manual publish (maintainers only):**
+```bash
+pnpm release   # builds all packages then runs changeset publish
+```
+
+`@simple-proxy/testkit` is private (`"private": true`) and excluded from all publishes via `.changeset/config.json`.
 
 ## License
 

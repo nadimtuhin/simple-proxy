@@ -19,6 +19,7 @@
     "typecheck": "tsc --noEmit",
     "test": "echo 'No tests for shim package' && exit 0"
   },
+  "publishConfig": { "access": "public" },
   "dependencies": {
     "@simple-proxy/express": "workspace:*"
   },

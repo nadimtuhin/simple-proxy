@@ -16,7 +16,8 @@
     "clean": "pnpm -r clean",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "pnpm -r build && changeset publish"
+    "release": "pnpm -r build && changeset publish",
+    "test:coverage": "pnpm -r test:coverage"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.0",
@@ -29,6 +30,7 @@
     "prettier": "^3.1.0",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
-    "vitest": "^2.0.0"
+    "vitest": "^2.0.0",
+    "@vitest/coverage-v8": "^2.0.0"
   }
 }

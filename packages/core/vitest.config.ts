@@ -5,5 +5,12 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     testTimeout: 10000,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'lcov'],
+      thresholds: {
+        lines: 80,
+      },
+    },
   },
 });

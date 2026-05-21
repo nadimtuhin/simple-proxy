@@ -123,12 +123,14 @@ async function applyErrorHook(
         processedError = hookResult;
       }
     } catch (hookError) {
+      // eslint-disable-next-line no-console
       console.error('Error handler hook failed:', hookError);
     }
   }
   try {
     await errorHandler(processedError, req, res);
   } catch (handlerError) {
+    // eslint-disable-next-line no-console
     console.error('Custom error handler failed:', handlerError);
     defaultErrorHandler(processedError, req, res);
   }
@@ -157,6 +159,7 @@ export function createProxyController(config: ProxyConfig): ProxyController {
         try {
           await onResponse(stats, reqWithFiles, res);
         } catch (err) {
+          // eslint-disable-next-line no-console
           console.error('onResponse callback error:', err);
         }
       };

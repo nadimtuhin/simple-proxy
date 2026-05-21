@@ -5,7 +5,7 @@ import {
   filterProxyResponseHeaders,
   isShortCircuitResponse,
 } from '@simple-proxy/core';
-import type { ProxyResponse } from '@simple-proxy/core';
+import type { ProxyResponse, ShortCircuitResponse } from '@simple-proxy/core';
 import {
   buildQueryString,
   resolveProxyPath,
@@ -24,6 +24,7 @@ import type {
   RequestWithFiles,
   ResponseHandler,
   ProxyController,
+  OnResponseCallback,
 } from './types.js';
 import { DEFAULT_TIMEOUT } from './types.js';
 
@@ -59,6 +60,24 @@ function validateConfig(config: ProxyConfig): void {
   }
 }
 
+function attachRequestBody(
+  payload: ProxyRequestPayload,
+  req: RequestWithLocals,
+  reqWithFiles: RequestWithFiles
+): void {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return;
+  if (req.is('multipart/form-data')) {
+    const bodyFormData = createFormDataPayload(reqWithFiles);
+    payload.data = bodyFormData;
+    Object.assign(payload.headers, bodyFormData.getHeaders());
+  } else {
+    payload.data = JSON.stringify(req.body);
+    if (!payload.headers['Content-Type']) {
+      payload.headers['Content-Type'] = 'application/json';
+    }
+  }
+}
+
 function buildRequestPayload(
   config: ProxyConfig,
   req: RequestWithLocals,
@@ -73,18 +92,7 @@ function buildRequestPayload(
     method: req.method,
     timeout: config.timeout ?? DEFAULT_TIMEOUT,
   };
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    if (req.is('multipart/form-data')) {
-      const bodyFormData = createFormDataPayload(reqWithFiles);
-      payload.data = bodyFormData;
-      Object.assign(payload.headers, bodyFormData.getHeaders());
-    } else {
-      payload.data = JSON.stringify(req.body);
-      if (!payload.headers['Content-Type']) {
-        payload.headers['Content-Type'] = 'application/json';
-      }
-    }
-  }
+  attachRequestBody(payload, req, reqWithFiles);
   return payload;
 }
 
@@ -108,6 +116,25 @@ async function dispatchUpstreamResponse(
   }
 }
 
+async function runErrorHook(
+  error: ProxyError,
+  req: RequestWithLocals,
+  res: Response,
+  errorHandlerHook: ProxyConfig['errorHandlerHook']
+): Promise<ProxyError> {
+  if (!errorHandlerHook) return error;
+  try {
+    const hookResult = await errorHandlerHook(error, req, res);
+    if (hookResult && (hookResult instanceof Error || 'message' in hookResult)) {
+      return hookResult;
+    }
+  } catch (hookError) {
+    // eslint-disable-next-line no-console
+    console.error('Error handler hook failed:', hookError);
+  }
+  return error;
+}
+
 async function applyErrorHook(
   error: ProxyError,
   req: RequestWithLocals,
@@ -115,18 +142,7 @@ async function applyErrorHook(
   errorHandlerHook: ProxyConfig['errorHandlerHook'],
   errorHandler: NonNullable<ProxyConfig['errorHandler']>
 ): Promise<ProxyError> {
-  let processedError = error;
-  if (errorHandlerHook) {
-    try {
-      const hookResult = await errorHandlerHook(processedError, req, res);
-      if (hookResult && (hookResult instanceof Error || 'message' in hookResult)) {
-        processedError = hookResult;
-      }
-    } catch (hookError) {
-      // eslint-disable-next-line no-console
-      console.error('Error handler hook failed:', hookError);
-    }
-  }
+  const processedError = await runErrorHook(error, req, res, errorHandlerHook);
   try {
     await errorHandler(processedError, req, res);
   } catch (handlerError) {
@@ -137,88 +153,136 @@ async function applyErrorHook(
   return processedError;
 }
 
+export function buildShortCircuitStats(
+  payload: ProxyRequestPayload,
+  status: number,
+  startedAt: number
+): ProxyStats {
+  return {
+    url: payload.url,
+    method: payload.method,
+    status,
+    durationMs: Date.now() - startedAt,
+    source: 'short-circuit',
+  };
+}
+
+export function buildUpstreamStats(
+  payload: ProxyRequestPayload,
+  remoteResponse: ProxyResponse,
+  startedAt: number
+): ProxyStats {
+  const size = parseSize(remoteResponse.headers['content-length']);
+  const stats: ProxyStats = {
+    url: payload.url,
+    method: payload.method,
+    status: remoteResponse.status,
+    durationMs: Date.now() - startedAt,
+    source: 'upstream',
+  };
+  if (size !== undefined) {
+    stats.responseSizeBytes = size;
+  }
+  return stats;
+}
+
+export function buildErrorStats(
+  payload: ProxyRequestPayload,
+  error: ProxyError,
+  startedAt: number
+): ProxyStats {
+  return {
+    url: payload.url,
+    method: payload.method,
+    status: error.status ?? 500,
+    durationMs: Date.now() - startedAt,
+    source: 'upstream',
+  };
+}
+
+export function sendShortCircuit(res: Response, hookResult: ShortCircuitResponse): void {
+  if (hookResult.headers) res.set(hookResult.headers);
+  res.status(hookResult.status).json(hookResult.data);
+}
+
+export async function reportStats(
+  onResponse: OnResponseCallback | undefined,
+  stats: ProxyStats,
+  req: RequestWithFiles,
+  res: Response
+): Promise<void> {
+  if (!onResponse) return;
+  try {
+    await onResponse(stats, req, res);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('onResponse callback error:', err);
+  }
+}
+
+interface ProxyRequestContext {
+  config: ProxyConfig;
+  errorHandler: NonNullable<ProxyConfig['errorHandler']>;
+  errorHandlerHook: ProxyConfig['errorHandlerHook'];
+  beforeRequest: ProxyConfig['beforeRequest'];
+  onResponse: ProxyConfig['onResponse'];
+  handler: ResponseHandler | boolean | undefined;
+  proxyPath: string | undefined;
+}
+
+async function tryUpstreamRequest(
+  ctx: ProxyRequestContext,
+  payload: ProxyRequestPayload,
+  req: RequestWithLocals,
+  reqWithFiles: RequestWithFiles,
+  res: Response,
+  startedAt: number
+): Promise<void> {
+  if (ctx.beforeRequest) {
+    const hookResult = await ctx.beforeRequest(payload, reqWithFiles);
+    if (isShortCircuitResponse(hookResult)) {
+      sendShortCircuit(res, hookResult);
+      await reportStats(ctx.onResponse, buildShortCircuitStats(payload, hookResult.status, startedAt), reqWithFiles, res);
+      return;
+    }
+  }
+  const remoteResponse = await axiosProxyRequest(payload);
+  await dispatchUpstreamResponse(ctx.handler, req, res, remoteResponse, ctx.config);
+  await reportStats(ctx.onResponse, buildUpstreamStats(payload, remoteResponse, startedAt), reqWithFiles, res);
+}
+
+async function executeProxyRequest(
+  ctx: ProxyRequestContext,
+  req: RequestWithLocals,
+  res: Response
+): Promise<void> {
+  const startedAt = Date.now();
+  const reqWithFiles = req as RequestWithFiles;
+  const payload = buildRequestPayload(ctx.config, req, reqWithFiles, ctx.proxyPath);
+  if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
+    console.log('🔄 Proxy Request:', generateCurlCommand(payload, reqWithFiles));
+  }
+  try {
+    await tryUpstreamRequest(ctx, payload, req, reqWithFiles, res, startedAt);
+  } catch (error) {
+    const processedError = await applyErrorHook(error as ProxyError, req, res, ctx.errorHandlerHook, ctx.errorHandler);
+    await reportStats(ctx.onResponse, buildErrorStats(payload, processedError, startedAt), reqWithFiles, res);
+  }
+}
+
 export function createProxyController(config: ProxyConfig): ProxyController {
   validateConfig(config);
-
-  const {
-    errorHandler = defaultErrorHandler,
-    errorHandlerHook,
-    beforeRequest,
-    onResponse,
-  } = config;
-
+  const ctx: Omit<ProxyRequestContext, 'handler' | 'proxyPath'> = {
+    config,
+    errorHandler: config.errorHandler ?? defaultErrorHandler,
+    errorHandlerHook: config.errorHandlerHook,
+    beforeRequest: config.beforeRequest,
+    onResponse: config.onResponse,
+  };
   return function proxyController(proxyPath?: string, handler?: ResponseHandler | boolean) {
-    return asyncWrapper(async (req: RequestWithLocals, res: Response): Promise<void> => {
-      const startedAt = Date.now();
-      let statsFired = false;
-      const reqWithFiles = req as RequestWithFiles;
-
-      const fireStats = async (stats: ProxyStats): Promise<void> => {
-        if (statsFired || !onResponse) return;
-        statsFired = true;
-        try {
-          await onResponse(stats, reqWithFiles, res);
-        } catch (err) {
-          // eslint-disable-next-line no-console
-          console.error('onResponse callback error:', err);
-        }
-      };
-
-      const payload = buildRequestPayload(config, req, reqWithFiles, proxyPath);
-
-      try {
-        if (process.env.NODE_ENV === 'development') {
-          // eslint-disable-next-line no-console
-          console.log('🔄 Proxy Request:', generateCurlCommand(payload, reqWithFiles));
-        }
-
-        if (beforeRequest) {
-          const hookResult = await beforeRequest(payload, reqWithFiles);
-          if (isShortCircuitResponse(hookResult)) {
-            if (hookResult.headers) res.set(hookResult.headers);
-            res.status(hookResult.status).json(hookResult.data);
-            await fireStats({
-              url: payload.url,
-              method: payload.method,
-              status: hookResult.status,
-              durationMs: Date.now() - startedAt,
-              source: 'short-circuit',
-            });
-            return;
-          }
-        }
-
-        const remoteResponse = await axiosProxyRequest(payload);
-        await dispatchUpstreamResponse(handler, req, res, remoteResponse, config);
-
-        const size = parseSize(remoteResponse.headers['content-length']);
-        const upstreamStats: ProxyStats = {
-          url: payload.url,
-          method: payload.method,
-          status: remoteResponse.status,
-          durationMs: Date.now() - startedAt,
-          source: 'upstream',
-        };
-        if (size !== undefined) {
-          upstreamStats.responseSizeBytes = size;
-        }
-        await fireStats(upstreamStats);
-      } catch (error) {
-        const processedError = await applyErrorHook(
-          error as ProxyError,
-          req,
-          res,
-          errorHandlerHook,
-          errorHandler
-        );
-        await fireStats({
-          url: payload.url,
-          method: payload.method,
-          status: processedError.status ?? 500,
-          durationMs: Date.now() - startedAt,
-          source: 'upstream',
-        });
-      }
-    });
+    return asyncWrapper((req: RequestWithLocals, res: Response) =>
+      executeProxyRequest({ ...ctx, handler, proxyPath }, req, res)
+    );
   };
 }

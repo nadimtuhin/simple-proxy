@@ -1,4 +1,6 @@
 export { axiosProxyRequest } from './proxy.js';
+export { runProxyPipeline } from './pipeline.js';
+export type { PipelineHooks, PipelineCallbacks } from './pipeline.js';
 export { buildUpstreamStats, buildErrorStats } from './stats.js';
 export {
   classifyResponseError,

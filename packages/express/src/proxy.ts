@@ -3,14 +3,15 @@ import {
   axiosProxyRequest,
   buildErrorResponseBody,
   filterProxyResponseHeaders,
-  isShortCircuitResponse,
+  runProxyPipeline,
+  parseSize,
 } from '@simple-proxy/core';
-import type { ProxyResponse, ShortCircuitResponse } from '@simple-proxy/core';
+import type { ProxyResponse, ShortCircuitResponse, ProxyStats } from '@simple-proxy/core';
+import type { PipelineCallbacks, PipelineHooks } from '@simple-proxy/core';
 import {
   buildQueryString,
   resolveProxyPath,
   urlJoin,
-  parseSize,
   createFormDataPayload,
   generateCurlCommand,
   asyncWrapper,
@@ -18,7 +19,6 @@ import {
 import type {
   ProxyConfig,
   ProxyError,
-  ProxyStats,
   ProxyRequestPayload,
   RequestWithLocals,
   RequestWithFiles,
@@ -29,6 +29,74 @@ import type {
 import { DEFAULT_TIMEOUT } from './types.js';
 
 export { axiosProxyRequest };
+
+// Exported helper functions (used by tests and external consumers)
+export function buildShortCircuitStats(
+  payload: ProxyRequestPayload,
+  status: number,
+  startedAt: number
+): ProxyStats {
+  return {
+    url: payload.url,
+    method: payload.method,
+    status,
+    durationMs: Date.now() - startedAt,
+    source: 'short-circuit',
+  };
+}
+
+export function buildUpstreamStats(
+  payload: ProxyRequestPayload,
+  remoteResponse: ProxyResponse,
+  startedAt: number
+): ProxyStats {
+  const size = parseSize(remoteResponse.headers['content-length']);
+  const stats: ProxyStats = {
+    url: payload.url,
+    method: payload.method,
+    status: remoteResponse.status,
+    durationMs: Date.now() - startedAt,
+    source: 'upstream',
+  };
+  if (size !== undefined) {
+    stats.responseSizeBytes = size;
+  }
+  return stats;
+}
+
+export function buildErrorStats(
+  payload: ProxyRequestPayload,
+  error: ProxyError,
+  startedAt: number
+): ProxyStats {
+  return {
+    url: payload.url,
+    method: payload.method,
+    status: error.status ?? 500,
+    durationMs: Date.now() - startedAt,
+    source: 'upstream',
+  };
+}
+
+export function sendShortCircuit(res: Response, hookResult: ShortCircuitResponse): void {
+  if (hookResult.headers) res.set(hookResult.headers);
+  res.status(hookResult.status).json(hookResult.data);
+}
+
+export async function reportStats(
+  onResponse: OnResponseCallback | undefined,
+  stats: ProxyStats,
+  req: RequestWithFiles,
+  res: Response
+): Promise<void> {
+  if (!onResponse) return;
+  try {
+    await onResponse(stats, req, res);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('onResponse callback error:', err);
+  }
+}
 
 export function defaultErrorHandler(
   error: ProxyError,
@@ -153,71 +221,20 @@ async function applyErrorHook(
   return processedError;
 }
 
-export function buildShortCircuitStats(
-  payload: ProxyRequestPayload,
-  status: number,
-  startedAt: number
-): ProxyStats {
-  return {
-    url: payload.url,
-    method: payload.method,
-    status,
-    durationMs: Date.now() - startedAt,
-    source: 'short-circuit',
-  };
-}
-
-export function buildUpstreamStats(
-  payload: ProxyRequestPayload,
-  remoteResponse: ProxyResponse,
-  startedAt: number
-): ProxyStats {
-  const size = parseSize(remoteResponse.headers['content-length']);
-  const stats: ProxyStats = {
-    url: payload.url,
-    method: payload.method,
-    status: remoteResponse.status,
-    durationMs: Date.now() - startedAt,
-    source: 'upstream',
-  };
-  if (size !== undefined) {
-    stats.responseSizeBytes = size;
-  }
-  return stats;
-}
-
-export function buildErrorStats(
-  payload: ProxyRequestPayload,
-  error: ProxyError,
-  startedAt: number
-): ProxyStats {
-  return {
-    url: payload.url,
-    method: payload.method,
-    status: error.status ?? 500,
-    durationMs: Date.now() - startedAt,
-    source: 'upstream',
-  };
-}
-
-export function sendShortCircuit(res: Response, hookResult: ShortCircuitResponse): void {
-  if (hookResult.headers) res.set(hookResult.headers);
-  res.status(hookResult.status).json(hookResult.data);
-}
-
-export async function reportStats(
+function createOnResponseWrapper(
   onResponse: OnResponseCallback | undefined,
-  stats: ProxyStats,
-  req: RequestWithFiles,
+  reqWithFiles: RequestWithFiles,
   res: Response
-): Promise<void> {
-  if (!onResponse) return;
-  try {
-    await onResponse(stats, req, res);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('onResponse callback error:', err);
-  }
+): ((stats: ProxyStats) => Promise<void>) | undefined {
+  if (!onResponse) return undefined;
+  return async (stats: ProxyStats) => {
+    try {
+      await onResponse(stats, reqWithFiles, res);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('onResponse callback error:', err);
+    }
+  };
 }
 
 interface ProxyRequestContext {
@@ -228,27 +245,6 @@ interface ProxyRequestContext {
   onResponse: ProxyConfig['onResponse'];
   handler: ResponseHandler | boolean | undefined;
   proxyPath: string | undefined;
-}
-
-async function tryUpstreamRequest(
-  ctx: ProxyRequestContext,
-  payload: ProxyRequestPayload,
-  req: RequestWithLocals,
-  reqWithFiles: RequestWithFiles,
-  res: Response,
-  startedAt: number
-): Promise<void> {
-  if (ctx.beforeRequest) {
-    const hookResult = await ctx.beforeRequest(payload, reqWithFiles);
-    if (isShortCircuitResponse(hookResult)) {
-      sendShortCircuit(res, hookResult);
-      await reportStats(ctx.onResponse, buildShortCircuitStats(payload, hookResult.status, startedAt), reqWithFiles, res);
-      return;
-    }
-  }
-  const remoteResponse = await axiosProxyRequest(payload);
-  await dispatchUpstreamResponse(ctx.handler, req, res, remoteResponse, ctx.config);
-  await reportStats(ctx.onResponse, buildUpstreamStats(payload, remoteResponse, startedAt), reqWithFiles, res);
 }
 
 async function executeProxyRequest(
@@ -263,12 +259,26 @@ async function executeProxyRequest(
     // eslint-disable-next-line no-console
     console.log('🔄 Proxy Request:', generateCurlCommand(payload, reqWithFiles));
   }
-  try {
-    await tryUpstreamRequest(ctx, payload, req, reqWithFiles, res, startedAt);
-  } catch (error) {
-    const processedError = await applyErrorHook(error as ProxyError, req, res, ctx.errorHandlerHook, ctx.errorHandler);
-    await reportStats(ctx.onResponse, buildErrorStats(payload, processedError, startedAt), reqWithFiles, res);
-  }
+
+  const wrappedOnResponse = createOnResponseWrapper(ctx.onResponse, reqWithFiles, res);
+  const hooks: PipelineHooks = {
+    ...(ctx.beforeRequest
+      ? { beforeRequest: (pl) => ctx.beforeRequest!(pl, reqWithFiles) }
+      : {}),
+    ...(wrappedOnResponse ? { onResponse: wrappedOnResponse } : {}),
+  };
+
+  const callbacks: PipelineCallbacks = {
+    onShortCircuit: async (hookResult) => sendShortCircuit(res, hookResult),
+    onSuccess: async (remoteResponse) => {
+      await dispatchUpstreamResponse(ctx.handler, req, res, remoteResponse, ctx.config);
+    },
+    onError: async (error) => {
+      return applyErrorHook(error as ProxyError, req, res, ctx.errorHandlerHook, ctx.errorHandler);
+    },
+  };
+
+  await runProxyPipeline(payload, hooks, callbacks, startedAt);
 }
 
 export function createProxyController(config: ProxyConfig): ProxyController {

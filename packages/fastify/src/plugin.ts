@@ -1,22 +1,17 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import {
-  axiosProxyRequest,
   buildErrorResponseBody,
   filterProxyResponseHeaders,
-  isShortCircuitResponse,
   generateCurlCommand,
   createFormDataPayload,
-  buildUpstreamStats,
-  buildErrorStats,
+  runProxyPipeline,
 } from '@simple-proxy/core';
-import type { FileUpload } from '@simple-proxy/core';
+import type { FileUpload, PipelineCallbacks, PipelineHooks } from '@simple-proxy/core';
 import type { FastifyProxyConfig, ProxyError, ProxyRequestPayload } from './types.js';
-import type { ProxyStats } from '@simple-proxy/core';
 import {
   buildBasePayload,
   attachJsonToPayload,
   applyShortCircuitToReply,
-  buildShortCircuitStats,
   createFireStats,
 } from './helpers.js';
 
@@ -104,54 +99,6 @@ function logDevRequest(payload: ProxyRequestPayload, body: unknown): void {
   );
 }
 
-async function handleBeforeRequest(
-  config: FastifyProxyConfig,
-  payload: ProxyRequestPayload,
-  request: FastifyRequest,
-  reply: FastifyReply,
-  startedAt: number,
-  fireStats: (stats: ProxyStats) => Promise<void>
-): Promise<boolean> {
-  if (!config.beforeRequest) return false;
-  const hookResult = await config.beforeRequest(payload, request);
-  if (!isShortCircuitResponse(hookResult)) return false;
-  applyShortCircuitToReply(hookResult, reply);
-  await fireStats(buildShortCircuitStats(payload, hookResult.status, startedAt));
-  return true;
-}
-
-async function handleUpstreamRequest(
-  payload: ProxyRequestPayload,
-  reply: FastifyReply,
-  startedAt: number,
-  fireStats: (stats: ProxyStats) => Promise<void>
-): Promise<void> {
-  const remoteResponse = await axiosProxyRequest(payload);
-  if (!reply.sent) {
-    reply.status(remoteResponse.status).send(remoteResponse.data);
-  }
-  await fireStats(buildUpstreamStats(payload, remoteResponse.status, startedAt, remoteResponse.headers));
-}
-
-async function handleProxyError(
-  error: ProxyError,
-  payload: ProxyRequestPayload,
-  request: FastifyRequest,
-  reply: FastifyReply,
-  startedAt: number,
-  errorHandler: NonNullable<FastifyProxyConfig["errorHandler"]>,
-  fireStats: (stats: ProxyStats) => Promise<void>
-): Promise<void> {
-  await fireStats(buildErrorStats(payload, error, startedAt));
-  if (reply.sent) return;
-  try {
-    await errorHandler(error, request, reply);
-  } catch (handlerError) {
-    console.error("Custom error handler failed:", handlerError);
-    if (!reply.sent) defaultFastifyErrorHandler(error, request, reply);
-  }
-}
-
 async function runFastifyProxy(
   config: FastifyProxyConfig,
   errorHandler: NonNullable<FastifyProxyConfig["errorHandler"]>,
@@ -162,18 +109,34 @@ async function runFastifyProxy(
   const startedAt = Date.now();
   const fireStats = createFireStats(config.onResponse, request, reply);
   const payload = await buildRequestPayload(config, request, proxyPath);
-  try {
-    logDevRequest(payload, request.body);
-    const shortCircuited = await handleBeforeRequest(
-      config, payload, request, reply, startedAt, fireStats
-    );
-    if (shortCircuited) return;
-    await handleUpstreamRequest(payload, reply, startedAt, fireStats);
-  } catch (error) {
-    await handleProxyError(
-      error as ProxyError, payload, request, reply, startedAt, errorHandler, fireStats
-    );
-  }
+  logDevRequest(payload, request.body);
+
+  const hooks: PipelineHooks = {
+    ...(config.beforeRequest
+      ? { beforeRequest: (pl) => config.beforeRequest!(pl, request) }
+      : {}),
+    ...(fireStats ? { onResponse: fireStats } : {}),
+  };
+
+  const callbacks: PipelineCallbacks = {
+    onShortCircuit: async (hookResult) => applyShortCircuitToReply(hookResult, reply),
+    onSuccess: async (remoteResponse) => {
+      if (!reply.sent) reply.status(remoteResponse.status).send(remoteResponse.data);
+    },
+    onError: async (error) => {
+      if (!reply.sent) {
+        try {
+          await errorHandler(error as ProxyError, request, reply);
+        } catch (handlerError) {
+          console.error("Custom error handler failed:", handlerError);
+          if (!reply.sent) defaultFastifyErrorHandler(error as ProxyError, request, reply);
+        }
+      }
+      return error;
+    },
+  };
+
+  await runProxyPipeline(payload, hooks, callbacks, startedAt);
 }
 
 export function createFastifyProxyHandler(

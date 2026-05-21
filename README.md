@@ -2,6 +2,12 @@
 
 Framework-agnostic HTTP proxy utilities for Node.js. Built on axios.
 
+[![CI](https://github.com/nadimtuhin/simple-proxy/actions/workflows/ci.yml/badge.svg)](https://github.com/nadimtuhin/simple-proxy/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@simple-proxy/core)](https://www.npmjs.com/package/@simple-proxy/core)
+[![npm](https://img.shields.io/npm/v/@simple-proxy/express)](https://www.npmjs.com/package/@simple-proxy/express)
+[![npm](https://img.shields.io/npm/v/@simple-proxy/fastify)](https://www.npmjs.com/package/@simple-proxy/fastify)
+[![npm](https://img.shields.io/npm/v/@simple-proxy/koa)](https://www.npmjs.com/package/@simple-proxy/koa)
+
 ## Packages
 
 | Package | Description |

@@ -1,0 +1,99 @@
+version: 2
+updates:
+  # Root package.json
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      dev-dependencies:
+        dependency-type: dev
+        update-types:
+          - minor
+          - patch
+
+  # packages/core
+  - package-ecosystem: npm
+    directory: "/packages/core"
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      dev-dependencies:
+        dependency-type: dev
+        update-types:
+          - minor
+          - patch
+
+  # packages/express
+  - package-ecosystem: npm
+    directory: "/packages/express"
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      dev-dependencies:
+        dependency-type: dev
+        update-types:
+          - minor
+          - patch
+
+  # packages/fastify
+  - package-ecosystem: npm
+    directory: "/packages/fastify"
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      dev-dependencies:
+        dependency-type: dev
+        update-types:
+          - minor
+          - patch
+
+  # packages/koa
+  - package-ecosystem: npm
+    directory: "/packages/koa"
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      dev-dependencies:
+        dependency-type: dev
+        update-types:
+          - minor
+          - patch
+
+  # packages/express-simple-proxy
+  - package-ecosystem: npm
+    directory: "/packages/express-simple-proxy"
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      dev-dependencies:
+        dependency-type: dev
+        update-types:
+          - minor
+          - patch
+
+  # packages/testkit
+  - package-ecosystem: npm
+    directory: "/packages/testkit"
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      dev-dependencies:
+        dependency-type: dev
+        update-types:
+          - minor
+          - patch
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday

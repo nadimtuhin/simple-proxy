@@ -4,7 +4,9 @@ import type { AddressInfo } from 'node:net';
 function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
     let data = '';
-    req.on('data', chunk => { data += chunk; });
+    req.on('data', (chunk) => {
+      data += chunk;
+    });
     req.on('end', () => resolve(data));
     req.on('error', reject);
   });
@@ -42,7 +44,11 @@ export function createMockUpstream(): Promise<MockUpstream> {
     if (method === 'POST' && path === '/echo') {
       const raw = await readBody(req);
       let body: unknown;
-      try { body = JSON.parse(raw); } catch { body = raw; }
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        body = raw;
+      }
       return json(res, 201, { data: body });
     }
 
@@ -53,7 +59,10 @@ export function createMockUpstream(): Promise<MockUpstream> {
 
     // GET /error/500
     if (method === 'GET' && path === '/error/500') {
-      return json(res, 500, { error: 'Internal Server Error', message: 'This is a simulated 500 error' });
+      return json(res, 500, {
+        error: 'Internal Server Error',
+        message: 'This is a simulated 500 error',
+      });
     }
 
     // GET /slow?delay=N — responds after N ms, cancellable on client disconnect
@@ -61,7 +70,7 @@ export function createMockUpstream(): Promise<MockUpstream> {
       const delayMs = parseInt(url.searchParams.get('delay') ?? '3000', 10);
       const ac = new AbortController();
       req.on('close', () => ac.abort());
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         const timer = setTimeout(resolve, delayMs);
         ac.signal.addEventListener('abort', () => clearTimeout(timer), { once: true });
       });
@@ -108,8 +117,10 @@ export function createMockUpstream(): Promise<MockUpstream> {
       const port = (server.address() as AddressInfo).port;
       resolve({
         url: `http://localhost:${port}`,
-        close: () => new Promise((res, rej) => server.close(err => (err ? rej(err) : res()))),
-        resetCounters: () => { rateLimitCount = 0; },
+        close: () => new Promise((res, rej) => server.close((err) => (err ? rej(err) : res()))),
+        resetCounters: () => {
+          rateLimitCount = 0;
+        },
       });
     });
     server.once('error', reject);

@@ -87,7 +87,8 @@ async function createFastifyProxy(options: CreateProxyOptions): Promise<ProxyHan
   fastify.route({
     method: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
     url: '/*',
-    handler,
+    // handler typed against the adapter's bundled fastify version; cast to local fastify route type
+    handler: handler as Parameters<typeof fastify.route>[0]['handler'],
   });
 
   await fastify.listen({ port: 0 });

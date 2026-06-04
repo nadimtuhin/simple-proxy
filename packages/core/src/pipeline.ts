@@ -70,12 +70,7 @@ export async function runProxyPipeline(
     await callbacks.onSuccess(remoteResponse);
     await fireStats(
       onResponse,
-      buildUpstreamStats(
-        payload,
-        remoteResponse.status,
-        startedAt,
-        remoteResponse.headers as Record<string, string>
-      )
+      buildUpstreamStats(payload, remoteResponse.status, startedAt, remoteResponse.headers as Record<string, string>)
     );
   } catch (error) {
     const processedError = await callbacks.onError(error as ProxyError);

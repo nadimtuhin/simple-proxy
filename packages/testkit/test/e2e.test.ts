@@ -17,6 +17,16 @@ import { join, dirname } from 'node:path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FIXTURES_DIR = join(__dirname, '../fixtures');
 
+/**
+ * Running a .ts fixture directly requires Node's native type-stripping,
+ * available from Node 22.6 (flagged) and on by default from 23.6.
+ * On older runtimes (e.g. Node 20) the e2e suite is skipped — the adapters
+ * are still fully covered by the parity + unit suites.
+ */
+const [major, minor] = process.versions.node.split('.').map(Number);
+const SUPPORTS_STRIP_TYPES =
+  (major as number) > 22 || ((major as number) === 22 && (minor as number) >= 6);
+
 interface ServerHandle {
   url: string;
   child: ChildProcess;
@@ -28,9 +38,13 @@ interface ServerHandle {
  */
 function spawnServer(script: string, env: Record<string, string> = {}): Promise<ServerHandle> {
   return new Promise((resolve, reject) => {
+    const nodeArgs =
+      (major as number) >= 24
+        ? [join(FIXTURES_DIR, script)]
+        : ['--experimental-strip-types', join(FIXTURES_DIR, script)];
     const child = spawn(
       process.execPath,
-      ['--experimental-strip-types', join(FIXTURES_DIR, script)],
+      nodeArgs,
       {
         stdio: ['ignore', 'pipe', 'pipe'],
         cwd: join(__dirname, '..'),
@@ -102,7 +116,7 @@ const ADAPTER_SCRIPTS: Record<AdapterName, string> = {
 };
 
 for (const [adapterName, script] of Object.entries(ADAPTER_SCRIPTS) as [AdapterName, string][]) {
-  describe(`E2E — ${adapterName}`, () => {
+  describe.skipIf(!SUPPORTS_STRIP_TYPES)(`E2E — ${adapterName}`, () => {
     let server: ServerHandle;
 
     beforeAll(async () => {
@@ -153,7 +167,7 @@ for (const [adapterName, script] of Object.entries(ADAPTER_SCRIPTS) as [AdapterN
     }, 10000);
   });
 
-  describe(`E2E — ${adapterName} — timeout`, () => {
+  describe.skipIf(!SUPPORTS_STRIP_TYPES)(`E2E — ${adapterName} — timeout`, () => {
     let server: ServerHandle;
 
     beforeAll(async () => {

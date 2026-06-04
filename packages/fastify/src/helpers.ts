@@ -1,9 +1,5 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import {
-  urlJoin,
-  buildQueryString,
-  resolveProxyPath,
-} from '@nadimtuhin/simple-proxy-core';
+import { urlJoin, buildQueryString, resolveProxyPath } from '@nadimtuhin/simple-proxy-core';
 import type {
   ProxyRequestPayload,
   ProxyStats,
@@ -41,10 +37,7 @@ const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
  * Mutates payload to attach a JSON/string body.
  * No-op for non-body methods or null/undefined bodies.
  */
-export function attachJsonToPayload(
-  payload: ProxyRequestPayload,
-  request: FastifyRequest
-): void {
+export function attachJsonToPayload(payload: ProxyRequestPayload, request: FastifyRequest): void {
   if (!BODY_METHODS.has(request.method)) return;
   const body = request.body;
   if (body === undefined || body === null) return;

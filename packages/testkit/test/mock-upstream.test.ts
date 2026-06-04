@@ -19,7 +19,7 @@ describe('createMockUpstream', () => {
 
   describe('GET /rate-limit', () => {
     it('returns 200 for first 3 requests then 429', async () => {
-      const results: Array<{ status: number; retryAfter?: string }> = [];
+      const results: Array<{ status: number; retryAfter: string | undefined }> = [];
 
       for (let i = 0; i < 4; i++) {
         const res = await fetch(`${upstream.url}/rate-limit`);
@@ -29,11 +29,11 @@ describe('createMockUpstream', () => {
         });
       }
 
-      expect(results[0].status).toBe(200);
-      expect(results[1].status).toBe(200);
-      expect(results[2].status).toBe(200);
-      expect(results[3].status).toBe(429);
-      expect(results[3].retryAfter).toBe('60');
+      expect(results[0]!.status).toBe(200);
+      expect(results[1]!.status).toBe(200);
+      expect(results[2]!.status).toBe(200);
+      expect(results[3]!.status).toBe(429);
+      expect(results[3]!.retryAfter).toBe('60');
     });
   });
 

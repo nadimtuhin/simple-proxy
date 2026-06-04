@@ -36,17 +36,17 @@ function buildPayload(
 }
 
 function logDevRequest(payload: ProxyRequestPayload, ctx: Context): void {
-  if (process.env.NODE_ENV !== "development") return;
+  if (process.env.NODE_ENV !== 'development') return;
   const body = (ctx.request as unknown as { body?: unknown }).body;
   console.log(
-    "Proxy Request:",
+    'Proxy Request:',
     generateCurlCommand(payload, { body: body as Record<string, unknown> })
   );
 }
 
 async function runKoaProxy(
   config: KoaProxyConfig,
-  errorHandler: NonNullable<KoaProxyConfig["errorHandler"]>,
+  errorHandler: NonNullable<KoaProxyConfig['errorHandler']>,
   proxyPath: string | undefined,
   ctx: Context
 ): Promise<void> {
@@ -70,7 +70,7 @@ async function runKoaProxy(
       try {
         await errorHandler(error as ProxyError, ctx);
       } catch (handlerError) {
-        console.error("Custom error handler failed:", handlerError);
+        console.error('Custom error handler failed:', handlerError);
         defaultKoaErrorHandler(error as ProxyError, ctx);
       }
       return error;
@@ -80,10 +80,7 @@ async function runKoaProxy(
   await runProxyPipeline(payload, hooks, callbacks, startedAt);
 }
 
-export function createKoaProxyMiddleware(
-  config: KoaProxyConfig,
-  proxyPath?: string
-): Middleware {
+export function createKoaProxyMiddleware(config: KoaProxyConfig, proxyPath?: string): Middleware {
   const { errorHandler = defaultKoaErrorHandler } = config;
   return (ctx) => runKoaProxy(config, errorHandler, proxyPath, ctx);
 }

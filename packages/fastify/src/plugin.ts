@@ -37,7 +37,7 @@ async function partToFileUpload(part: MultipartFilePart): Promise<FileUpload> {
     fieldname: part.fieldname,
     originalname: part.filename ?? part.fieldname,
     encoding: part.encoding,
-    mimetype: part.mimetype ?? "application/octet-stream",
+    mimetype: part.mimetype ?? 'application/octet-stream',
     buffer,
     size: buffer.length,
   };
@@ -47,13 +47,13 @@ async function attachMultipartBody(
   request: MultipartRequest,
   payload: ProxyRequestPayload
 ): Promise<void> {
-  if (typeof request.parts !== "function") return;
+  if (typeof request.parts !== 'function') return;
   const files: FileUpload[] = [];
   const body: Record<string, unknown> = {};
   for await (const part of request.parts()) {
-    if (part.type === "file" && part.toBuffer) {
+    if (part.type === 'file' && part.toBuffer) {
       files.push(await partToFileUpload(part as MultipartFilePart));
-    } else if (part.type === "field") {
+    } else if (part.type === 'field') {
       body[part.fieldname] = part.value;
     }
   }
@@ -82,8 +82,8 @@ async function buildRequestPayload(
   proxyPath?: string
 ): Promise<ProxyRequestPayload> {
   const payload = buildBasePayload(config, request, proxyPath);
-  const contentType = (request.headers["content-type"] ?? "").toLowerCase();
-  if (contentType.includes("multipart/form-data")) {
+  const contentType = (request.headers['content-type'] ?? '').toLowerCase();
+  if (contentType.includes('multipart/form-data')) {
     await attachMultipartBody(request as MultipartRequest, payload);
   } else {
     attachJsonToPayload(payload, request);
@@ -92,16 +92,16 @@ async function buildRequestPayload(
 }
 
 function logDevRequest(payload: ProxyRequestPayload, body: unknown): void {
-  if (process.env.NODE_ENV !== "development") return;
+  if (process.env.NODE_ENV !== 'development') return;
   console.log(
-    "Proxy Request:",
+    'Proxy Request:',
     generateCurlCommand(payload, { body: body as Record<string, unknown> })
   );
 }
 
 async function runFastifyProxy(
   config: FastifyProxyConfig,
-  errorHandler: NonNullable<FastifyProxyConfig["errorHandler"]>,
+  errorHandler: NonNullable<FastifyProxyConfig['errorHandler']>,
   proxyPath: string | undefined,
   request: FastifyRequest,
   reply: FastifyReply
@@ -112,9 +112,7 @@ async function runFastifyProxy(
   logDevRequest(payload, request.body);
 
   const hooks: PipelineHooks = {
-    ...(config.beforeRequest
-      ? { beforeRequest: (pl) => config.beforeRequest!(pl, request) }
-      : {}),
+    ...(config.beforeRequest ? { beforeRequest: (pl) => config.beforeRequest!(pl, request) } : {}),
     ...(fireStats ? { onResponse: fireStats } : {}),
   };
 
@@ -128,7 +126,7 @@ async function runFastifyProxy(
         try {
           await errorHandler(error as ProxyError, request, reply);
         } catch (handlerError) {
-          console.error("Custom error handler failed:", handlerError);
+          console.error('Custom error handler failed:', handlerError);
           if (!reply.sent) defaultFastifyErrorHandler(error as ProxyError, request, reply);
         }
       }

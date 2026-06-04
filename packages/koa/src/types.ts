@@ -35,16 +35,10 @@ export type KoaBeforeRequestHook = (
 ) => void | ShortCircuitResponse | Promise<void | ShortCircuitResponse>;
 
 /** Koa-flavoured stats callback — receives Koa Context */
-export type KoaOnResponseCallback = (
-  stats: ProxyStats,
-  ctx: Context
-) => void | Promise<void>;
+export type KoaOnResponseCallback = (stats: ProxyStats, ctx: Context) => void | Promise<void>;
 
 /** Koa error handler — receives Koa Context */
-export type KoaErrorHandler = (
-  error: ProxyError,
-  ctx: Context
-) => void | Promise<void>;
+export type KoaErrorHandler = (error: ProxyError, ctx: Context) => void | Promise<void>;
 
 export interface KoaProxyConfig {
   baseURL: string;

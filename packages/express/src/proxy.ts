@@ -6,7 +6,11 @@ import {
   runProxyPipeline,
   parseSize,
 } from '@nadimtuhin/simple-proxy-core';
-import type { ProxyResponse, ShortCircuitResponse, ProxyStats } from '@nadimtuhin/simple-proxy-core';
+import type {
+  ProxyResponse,
+  ShortCircuitResponse,
+  ProxyStats,
+} from '@nadimtuhin/simple-proxy-core';
 import type { PipelineCallbacks, PipelineHooks } from '@nadimtuhin/simple-proxy-core';
 import {
   buildQueryString,
@@ -262,9 +266,7 @@ async function executeProxyRequest(
 
   const wrappedOnResponse = createOnResponseWrapper(ctx.onResponse, reqWithFiles, res);
   const hooks: PipelineHooks = {
-    ...(ctx.beforeRequest
-      ? { beforeRequest: (pl) => ctx.beforeRequest!(pl, reqWithFiles) }
-      : {}),
+    ...(ctx.beforeRequest ? { beforeRequest: (pl) => ctx.beforeRequest!(pl, reqWithFiles) } : {}),
     ...(wrappedOnResponse ? { onResponse: wrappedOnResponse } : {}),
   };
 

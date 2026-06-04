@@ -28,9 +28,7 @@ type RawFiles = { [field: string]: MulFile[] } | MulFile[] | undefined;
 /** Pure: normalize multer file formats to FileUpload[]. */
 export function extractKoaFiles(rawFiles: RawFiles): FileUpload[] {
   if (!rawFiles) return [];
-  const list = Array.isArray(rawFiles)
-    ? rawFiles
-    : Object.values(rawFiles).flat();
+  const list = Array.isArray(rawFiles) ? rawFiles : Object.values(rawFiles).flat();
   return list.map((f) => ({
     fieldname: f.fieldname,
     originalname: f.originalname,
@@ -67,10 +65,7 @@ const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
  * Mutates payload to attach body data from koa ctx.
  * Handles both multipart/form-data and JSON bodies.
  */
-export function attachKoaBodyToPayload(
-  payload: ProxyRequestPayload,
-  ctx: Context
-): void {
+export function attachKoaBodyToPayload(payload: ProxyRequestPayload, ctx: Context): void {
   if (!BODY_METHODS.has(ctx.method)) return;
   const contentType = (ctx.get('content-type') ?? '').toLowerCase();
   if (contentType.includes('multipart/form-data')) {
@@ -98,10 +93,7 @@ function attachJsonBody(payload: ProxyRequestPayload, ctx: Context): void {
 }
 
 /** Applies a short-circuit response to a Koa context. */
-export function applyShortCircuitToCtx(
-  hookResult: ShortCircuitResponse,
-  ctx: Context
-): void {
+export function applyShortCircuitToCtx(hookResult: ShortCircuitResponse, ctx: Context): void {
   if (hookResult.headers) {
     Object.entries(hookResult.headers).forEach(([k, v]) => ctx.set(k, v));
   }
